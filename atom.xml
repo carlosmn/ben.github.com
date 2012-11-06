@@ -1,131 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
 
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <title>As Yet Untitled</title>
-  <meta name="author" content="Ben Straub">
-
-  
-  <meta name="description" content="The Best Part of Waking Up Oct 24th, 2012 It seems like such a small detail: what&#8217;s the first thing you do when you wake
-up? Hop in the shower &hellip;">
-  
-
-  <!-- http://t.co/dKP3o1e -->
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  
-  <link rel="canonical" href="http://ben.github.com/">
-  <link href="/favicon.png" rel="icon">
-  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="/javascripts/ender.js"></script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
-  <link href="/atom.xml" rel="alternate" title="As Yet Untitled" type="application/atom+xml">
-  
-  
-  <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-35858797-1']);
-    _gaq.push(['_trackPageview']);
-
-    (function() {
-      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
-  </script>
-
-
-</head>
-
-<body >
-  <header role="banner" id="sidebar">
-    <!-- Logo -->
-<ul id="menu">
-
-  <li class="title">
-    <h1 id="title"><a href="/">As Yet Untitled</a></h1>
-  </li>
-
-
-  <li class="subtitle">
-    <h2 id="subtitle">This is where Ben Straub keeps his thoughts</h2>
-  </li>
-
-  <li class="link">
-    <a href="/talks">talks</a>
-  </li>
-
-  <li class="link">
-    <a href="http://twitter.com/benstraub/">twitter</a>
-  </li>
-
-
-  <li class="link">
-    <a href="http://github.com/ben/">github</a>
-  </li>
-
-  <li class="link rss">
-    <a href="/atom.xml">rss feed</a>
-  </li>
-</ul>
-
-
-
-<!-- Octopress Love -->
-<aside id="octopress_linkback">
-  <a href="http://octopress.org/">
-    <span class="unicode_square">
-      <span class="unicode_circle">
-        &nbsp;
-      </span>
-    </span>
-    <span class="octopress">Powered by Octopress</span>
-  </a>
-</aside>
-
-  </header>
-  <section id="main">
-      
-  
-  
-    <article class="post">
-      
-  <header>
+  <title><![CDATA[As Yet Untitled]]></title>
+  <link href="http://ben.github.com/atom.xml" rel="self"/>
+  <link href="http://ben.github.com/"/>
+  <updated>2012-11-06T13:09:47-08:00</updated>
+  <id>http://ben.github.com/</id>
+  <author>
+    <name><![CDATA[Ben Straub]]></name>
     
-      <h1 class="entry-title">
-        
-        <a href="/2012/10/24/the-best-part-of-waking-up/">The Best Part of Waking Up</a>
-        
-      </h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
 
   
-
-
-<time datetime="2012-10-24T19:08:00-07:00" pubdate data-updated="true">Oct 24<span>th</span>, 2012</time>
-        
-      </p>
-    
-  </header>
-
-
-  <p>It seems like such a small detail: what&#8217;s the first thing you do when you wake
+  <entry>
+    <title type="html"><![CDATA[The Best Part of Waking Up]]></title>
+    <link href="http://ben.github.com/2012/10/24/the-best-part-of-waking-up/"/>
+    <updated>2012-10-24T19:08:00-07:00</updated>
+    <id>http://ben.github.com/2012/10/24/the-best-part-of-waking-up</id>
+    <content type="html"><![CDATA[<p>It seems like such a small detail: what&#8217;s the first thing you do when you wake
 up?  Hop in the shower?  Check your email?  Hit Reddit for a <a href="http://aww.reddit.com/">quick puppy
 fix</a> before the coffee starts working?</p>
 
@@ -175,46 +68,15 @@ I make something.  I start checking Twitter and Facebook as break time, rather
 than using them to avoiding real work, and I get more real work done.</p>
 
 <p>It&#8217;s amazing what power a small detail can have.</p>
-
+]]></content>
+  </entry>
   
-  
-
-
-    </article>
-  
-  
-    <article class="post">
-      
-  <header>
-    
-      <h1 class="entry-title">
-        
-        <a href="/2011/02/02/native-win32-for-fun-and-profit/">Native Win32 for Fun and Profit</a>
-        
-      </h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2011-02-02T00:00:00-08:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2011</time>
-        
-      </p>
-    
-  </header>
-
-
-  <p><em>[Note: this is ported from my <a href="http://ben.straubnet.net/post/3074077580/native-win32-for-fun-and-profit">old
+  <entry>
+    <title type="html"><![CDATA[Native Win32 for fun and profit]]></title>
+    <link href="http://ben.github.com/2011/02/02/native-win32-for-fun-and-profit/"/>
+    <updated>2011-02-02T00:00:00-08:00</updated>
+    <id>http://ben.github.com/2011/02/02/native-win32-for-fun-and-profit</id>
+    <content type="html"><![CDATA[<p><em>[Note: this is ported from my <a href="http://ben.straubnet.net/post/3074077580/native-win32-for-fun-and-profit">old
 blog</a>,
 and there&#8217;s more discussion there.]</em></p>
 
@@ -222,7 +84,7 @@ and there&#8217;s more discussion there.]</em></p>
 cool frameworks.  I&#8217;m stuck with c++ at work, but every now and then I get to
 do something cool with it.</p>
 
-<p><img src="/images/nativewin32/1.png" alt="radial menu" /></p>
+<p><img src="http://ben.github.com/images/nativewin32/1.png" alt="radial menu" /></p>
 
 <p>That&#8217;s the <a href="http://graphicssoft.about.com/od/hardware/ig/Wacom-Intuos4/Intuos4-Radial-Menu.htm">Wacom radial
 menu</a>,
@@ -468,54 +330,8 @@ easy, especially when compared to GDI code:</p>
 about how to store a PNG as a resource, and load it in for use with this. For
 now, you get an ugly screenshot:</p>
 
-<p><img src="/images/nativewin32/2.png" alt="ugly test image" /></p>
-
+<p><img src="http://ben.github.com/images/nativewin32/2.png" alt="ugly test image" /></p>
+]]></content>
+  </entry>
   
-  
-
-
-    </article>
-  
-
-    <nav role="navigation" id="pagination">
-
-</nav>
-  </section>
-  
-
-  
-
-<script type="text/javascript">
-      var disqus_shortname = 'benstraubnet';
-      
-        
-        var disqus_script = 'count.js';
-      
-    (function () {
-      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
-      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    }());
-</script>
-
-
-
-
-
-
-
-  <script type="text/javascript">
-    (function(){
-      var twitterWidgets = document.createElement('script');
-      twitterWidgets.type = 'text/javascript';
-      twitterWidgets.async = true;
-      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
-      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
-    })();
-  </script>
-
-
-
-
-</body>
-</html>
+</feed>
