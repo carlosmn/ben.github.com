@@ -4,7 +4,7 @@
   <title><![CDATA[As Yet Untitled]]></title>
   <link href="http://ben.github.com/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2012-12-23T12:04:01-08:00</updated>
+  <updated>2013-01-11T08:43:05-08:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -12,6 +12,21 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[2012: Year in Review]]></title>
+    <link href="http://ben.github.com/2013/01/10/year-in-review/"/>
+    <updated>2013-01-10T22:28:00-08:00</updated>
+    <id>http://ben.github.com/2013/01/10/year-in-review</id>
+    <content type="html"><![CDATA[<p>My 2012, through the GitHub lens.  Inspired by <a href="https://github.com/blog/1360-introducing-contributions">Tim Clem</a>.</p>
+
+<p><a href="http://ben.github.com/images/contributions-2012.png"><img src="http://ben.github.com/images/contributions-2012.png" alt="Annotated GitHub Contributions Chart" /></a></p>
+
+<p>I guess it&#8217;s not that surprising, but vacations, travel, and holidays show up pretty clearly.</p>
+
+<p>Yes, there are two honeymoons.  Both of them piggybacked on business travel &#8212; the first was a <a href="http://www.beckyjenson.com/2012/06/hawaiian-simplicity/">destination wedding</a> I photographed with my lovely wife a week after we were married, and the second was glued to a <a href="http://www.openblend.org/en/home">conference</a> I <a href="http://ben.github.com/talks/openblend.html">spoke at</a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[The Best Part of Waking Up]]></title>
