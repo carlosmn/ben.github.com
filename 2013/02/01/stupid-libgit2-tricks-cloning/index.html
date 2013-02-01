@@ -1,0 +1,312 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Stupid libgit2 Tricks: Cloning - As Yet Untitled</title>
+  <meta name="author" content="Ben Straub">
+
+  
+  <meta name="description" content="Tweet Stupid libgit2 Tricks: Cloning Feb 1st, 2013 Libgit2 aims to make it easy to do interesting things
+with git. What&#8217;s the first thing you &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="As Yet Untitled" type="application/atom+xml">
+  
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-35858797-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body >
+  <header role="banner" id="sidebar">
+    <!-- Logo -->
+<ul id="menu">
+
+  <li class="title">
+    <h1 id="title"><a href="/">As Yet Untitled</a></h1>
+  </li>
+
+
+  <li class="subtitle">
+    <h2 id="subtitle">This is where Ben Straub keeps his thoughts</h2>
+  </li>
+
+  <li class="link">
+    <a href="/talks">talks</a>
+  </li>
+
+  <li class="link">
+    <a href="http://twitter.com/benstraub/">twitter</a>
+  </li>
+
+
+  <li class="link">
+    <a href="http://github.com/ben/">github</a>
+  </li>
+
+  <li class="link rss">
+    <a href="/atom.xml">rss feed</a>
+  </li>
+</ul>
+
+
+
+<!-- Octopress Love -->
+<aside id="octopress_linkback">
+  <a href="http://octopress.org/">
+    <span class="unicode_square">
+      <span class="unicode_circle">
+        &nbsp;
+      </span>
+    </span>
+    <span class="octopress">Powered by Octopress</span>
+  </a>
+</aside>
+
+  </header>
+  <section id="main">
+    <article class="post">
+  <div class="sharing-box">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/" data-via="benstraub" data-counturl="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/" data-size="large">Tweet</a>
+  
+  
+  
+</div>
+
+  
+  <header>
+    
+      <h1 class="entry-title">Stupid libgit2 Tricks: Cloning</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-01T10:00:00-08:00" pubdate data-updated="true">Feb 1<span>st</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<p><a href="http://libgit2.github.com">Libgit2</a> aims to make it easy to do interesting things
+with git.  What&#8217;s the first thing you always do when learning git?  That&#8217;s
+right, you clone something from GitHub.  Let&#8217;s get started, shall we? Let&#8217;s get
+some of the boilerplate out of the way:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="cp">#include &quot;git2.h&quot;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">url</span><span class="p">,</span> <span class="o">*</span><span class="n">path</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;USAGE: clone &lt;url&gt; &lt;path&gt;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="k">return</span> <span class="n">do_clone</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>What does the do_clone method look like?  Let&#8217;s start simple:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">int</span> <span class="nf">do_clone</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">url</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">git_clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">git_repository_free</span><span class="p">(</span><span class="n">repo</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p><code>git_clone</code> takes some information, and fills in a pointer for us with
+a <code>git_repository</code> object we can use to do <em>all manner of unholy things</em>.  For
+now, let&#8217;s ignore the repository itself, except to be good citizens and release
+the memory associated with it.</p>
+
+<p>That <code>NULL</code> parameter?  That&#8217;s for a <code>git_clone_options</code> structure, which
+defaults to some sensible stuff.  The way our code is written right now, these
+two commands will have the same results:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='sh'>./clone http://github.com/libgit2/libgit2 ./libgit2
+git clone http://github.com/libgit2/libgit2
+</code></pre></div></figure>
+
+
+<p>&#8230; except that <code>git</code> tells you what it&#8217;s doing.  Let&#8217;s fix that.</p>
+
+<p>One of the things you can do with <code>git_clone_options</code> is have libgit2 call
+a function when there is progress to report.  A typical callback looks like
+this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">void</span> <span class="nf">fetch_progress</span><span class="p">(</span>
+        <span class="k">const</span> <span class="n">git_transfer_progress</span> <span class="o">*</span><span class="n">stats</span><span class="p">,</span>
+        <span class="kt">void</span> <span class="o">*</span><span class="n">payload</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">fetch_percent</span> <span class="o">=</span>
+        <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">received_objects</span><span class="p">)</span> <span class="o">/</span>
+        <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">index_percent</span> <span class="o">=</span>
+        <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">indexed_objects</span><span class="p">)</span> <span class="o">/</span>
+        <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">kbytes</span> <span class="o">=</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">received_bytes</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">;</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;network %3d%% (%4d kb, %5d/%5d)  /&quot;</span>
+            <span class="s">&quot;  index %3d%% (%5d/%5d)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+            <span class="n">fetch_percent</span><span class="p">,</span> <span class="n">kbytes</span><span class="p">,</span>
+            <span class="n">stats</span><span class="o">-&gt;</span><span class="n">received_objects</span><span class="p">,</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">,</span>
+            <span class="n">index_percent</span><span class="p">,</span>
+            <span class="n">stats</span><span class="o">-&gt;</span><span class="n">indexed_objects</span><span class="p">,</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>That <code>stats</code> object gives you lots of useful stuff:</p>
+
+<ul>
+<li>The number of objects transferred over the network</li>
+<li>The number of objects that the indexer has processed</li>
+<li>The total number of objects expected</li>
+<li>The number of bytes transferred</li>
+</ul>
+
+
+<p>So let&#8217;s rewrite our <code>do_clone</code> function to plug that in:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">int</span> <span class="nf">do_clone</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">url</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">git_clone_options</span> <span class="n">opts</span> <span class="o">=</span> <span class="n">GIT_CLONE_OPTIONS_INIT</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+
+    <span class="n">opts</span><span class="p">.</span><span class="n">fetch_progress_cb</span> <span class="o">=</span> <span class="n">fetch_progress</span><span class="p">;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">git_clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+    <span class="n">git_repository_free</span><span class="p">(</span><span class="n">repo</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>If you run this now, the program will tell you what it&#8217;s doing!  You can watch
+the network transfer happening, and notice that the indexer is doing its job
+<em>at the same time</em>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>[...]
+network  73% (   7 kb,    51/   69)  /  index  71% (   49/   69)
+network  75% (   7 kb,    52/   69)  /  index  72% (   50/   69)
+network  76% (   7 kb,    53/   69)  /  index  73% (   51/   69)
+network  78% (   7 kb,    54/   69)  /  index  75% (   52/   69)
+[...]
+</code></pre></div></figure>
+
+
+<p>If you try this with a large repository, you&#8217;ll notice a significant pause at
+the end.  All the data has been moved, what&#8217;s going on?  It turns out that
+doing a checkout can take a non-trivial amount of time.  It also turns out that
+libgit2 will let you report that progress as well!</p>
+
+<p>But that&#8217;s part of checkout, which warrants its own blog post.  In the
+meantime, check out the <a href="https://github.com/libgit2/libgit2/blob/development/include/git2/clone.h">clone
+header</a>
+to see what <code>git_clone</code> can do.  If you want to, you could even use the <a href="https://gist.github.com/4693571">code
+from this post</a> as a starting point for your
+own experiments.</p>
+
+
+
+</article>
+
+  <section class="comments">
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+    <nav role="navigation" id="pagination">
+
+</nav>
+  </section>
+  
+
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'benstraubnet';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/';
+        var disqus_url = 'http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+</body>
+</html>

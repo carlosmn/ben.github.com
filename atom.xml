@@ -4,7 +4,7 @@
   <title><![CDATA[As Yet Untitled]]></title>
   <link href="http://ben.github.com/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-01-11T08:43:05-08:00</updated>
+  <updated>2013-02-01T11:52:03-08:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -12,6 +12,142 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Stupid libgit2 Tricks: Cloning]]></title>
+    <link href="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/"/>
+    <updated>2013-02-01T10:00:00-08:00</updated>
+    <id>http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning</id>
+    <content type="html"><![CDATA[<p><a href="http://libgit2.github.com">Libgit2</a> aims to make it easy to do interesting things
+with git.  What&#8217;s the first thing you always do when learning git?  That&#8217;s
+right, you clone something from GitHub.  Let&#8217;s get started, shall we? Let&#8217;s get
+some of the boilerplate out of the way:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="cp">#include &quot;git2.h&quot;</span>
+<span class="cp">#include &lt;stdio.h&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">url</span><span class="p">,</span> <span class="o">*</span><span class="n">path</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;USAGE: clone &lt;url&gt; &lt;path&gt;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+    <span class="k">return</span> <span class="n">do_clone</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>What does the do_clone method look like?  Let&#8217;s start simple:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">int</span> <span class="nf">do_clone</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">url</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">git_clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">git_repository_free</span><span class="p">(</span><span class="n">repo</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p><code>git_clone</code> takes some information, and fills in a pointer for us with
+a <code>git_repository</code> object we can use to do <em>all manner of unholy things</em>.  For
+now, let&#8217;s ignore the repository itself, except to be good citizens and release
+the memory associated with it.</p>
+
+<p>That <code>NULL</code> parameter?  That&#8217;s for a <code>git_clone_options</code> structure, which
+defaults to some sensible stuff.  The way our code is written right now, these
+two commands will have the same results:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='sh'>./clone http://github.com/libgit2/libgit2 ./libgit2
+git clone http://github.com/libgit2/libgit2
+</code></pre></div></figure>
+
+
+<p>&#8230; except that <code>git</code> tells you what it&#8217;s doing.  Let&#8217;s fix that.</p>
+
+<p>One of the things you can do with <code>git_clone_options</code> is have libgit2 call
+a function when there is progress to report.  A typical callback looks like
+this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">void</span> <span class="nf">fetch_progress</span><span class="p">(</span>
+        <span class="k">const</span> <span class="n">git_transfer_progress</span> <span class="o">*</span><span class="n">stats</span><span class="p">,</span>
+        <span class="kt">void</span> <span class="o">*</span><span class="n">payload</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">fetch_percent</span> <span class="o">=</span>
+        <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">received_objects</span><span class="p">)</span> <span class="o">/</span>
+        <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">index_percent</span> <span class="o">=</span>
+        <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">indexed_objects</span><span class="p">)</span> <span class="o">/</span>
+        <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">kbytes</span> <span class="o">=</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">received_bytes</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">;</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;network %3d%% (%4d kb, %5d/%5d)  /&quot;</span>
+            <span class="s">&quot;  index %3d%% (%5d/%5d)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+            <span class="n">fetch_percent</span><span class="p">,</span> <span class="n">kbytes</span><span class="p">,</span>
+            <span class="n">stats</span><span class="o">-&gt;</span><span class="n">received_objects</span><span class="p">,</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">,</span>
+            <span class="n">index_percent</span><span class="p">,</span>
+            <span class="n">stats</span><span class="o">-&gt;</span><span class="n">indexed_objects</span><span class="p">,</span> <span class="n">stats</span><span class="o">-&gt;</span><span class="n">total_objects</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>That <code>stats</code> object gives you lots of useful stuff:</p>
+
+<ul>
+<li>The number of objects transferred over the network</li>
+<li>The number of objects that the indexer has processed</li>
+<li>The total number of objects expected</li>
+<li>The number of bytes transferred</li>
+</ul>
+
+
+<p>So let&#8217;s rewrite our <code>do_clone</code> function to plug that in:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">int</span> <span class="nf">do_clone</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">url</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">git_clone_options</span> <span class="n">opts</span> <span class="o">=</span> <span class="n">GIT_CLONE_OPTIONS_INIT</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+
+    <span class="n">opts</span><span class="p">.</span><span class="n">fetch_progress_cb</span> <span class="o">=</span> <span class="n">fetch_progress</span><span class="p">;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">git_clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+    <span class="n">git_repository_free</span><span class="p">(</span><span class="n">repo</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>If you run this now, the program will tell you what it&#8217;s doing!  You can watch
+the network transfer happening, and notice that the indexer is doing its job
+<em>at the same time</em>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>[...]
+network  73% (   7 kb,    51/   69)  /  index  71% (   49/   69)
+network  75% (   7 kb,    52/   69)  /  index  72% (   50/   69)
+network  76% (   7 kb,    53/   69)  /  index  73% (   51/   69)
+network  78% (   7 kb,    54/   69)  /  index  75% (   52/   69)
+[...]
+</code></pre></div></figure>
+
+
+<p>If you try this with a large repository, you&#8217;ll notice a significant pause at
+the end.  All the data has been moved, what&#8217;s going on?  It turns out that
+doing a checkout can take a non-trivial amount of time.  It also turns out that
+libgit2 will let you report that progress as well!</p>
+
+<p>But that&#8217;s part of checkout, which warrants its own blog post.  In the
+meantime, check out the <a href="https://github.com/libgit2/libgit2/blob/development/include/git2/clone.h">clone
+header</a>
+to see what <code>git_clone</code> can do.  If you want to, you could even use the <a href="https://gist.github.com/4693571">code
+from this post</a> as a starting point for your
+own experiments.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[2012: Year in Review]]></title>
