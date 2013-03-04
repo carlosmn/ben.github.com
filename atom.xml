@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[As Yet Untitled]]></title>
+  <title><![CDATA[Ben Straub]]></title>
   <link href="http://ben.github.com/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-02-01T11:52:03-08:00</updated>
+  <updated>2013-03-04T12:10:26-08:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Stupid libgit2 Tricks: Cloning]]></title>
+    <title type="html"><![CDATA[libgit2: Cloning]]></title>
     <link href="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/"/>
     <updated>2013-02-01T10:00:00-08:00</updated>
     <id>http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning</id>
@@ -146,6 +146,16 @@ header</a>
 to see what <code>git_clone</code> can do.  If you want to, you could even use the <a href="https://gist.github.com/4693571">code
 from this post</a> as a starting point for your
 own experiments.</p>
+
+<h3>More About libgit2</h3>
+
+<p>Here&#8217;s some more stuff you might be interested in:</p>
+
+<ul>
+<li><a href="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/">Clone</a></li>
+<li><a href="http://ben.github.com/2013/02/07/stupid-libgit2-tricks-checkout/">Checkout</a></li>
+</ul>
+
 ]]></content>
   </entry>
   
