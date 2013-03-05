@@ -4,7 +4,7 @@
   <title><![CDATA[Category: libgit2 | Ben Straub]]></title>
   <link href="http://ben.github.com/blog/categories/libgit2/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-03-04T15:34:42-08:00</updated>
+  <updated>2013-03-05T12:21:32-08:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -12,6 +12,97 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[libgit2: The Repository]]></title>
+    <link href="http://ben.github.com/2013/03/05/libgit2-the-repository/"/>
+    <updated>2013-03-05T12:00:00-08:00</updated>
+    <id>http://ben.github.com/2013/03/05/libgit2-the-repository</id>
+    <content type="html"><![CDATA[<p>In <a href="http://libgit2.github.com/">libgit2</a>, the <code>git_repository</code> object is the gateway to getting interesting stuff out of git.
+There are several ways to get your hands on one.</p>
+
+<h2>Clone</h2>
+
+<p>If your repository exists on a remote but not on the local machine, you can get it using <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_clone"><code>git_clone</code></a>, and once it's done with all the network stuff, it spits out a repository object.
+Check out <a href="/2013/02/01/stupid-libgit2-tricks-cloning/">my post on cloning</a> for more on that.</p>
+
+<h2>Discover</h2>
+
+<p>If you know a particular directory is a git repository, you can just hand the path to <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_open"><code>git_repository_open</code></a>.
+The path can be to a bare repository, a <code>.git</code> folder, or a working directory.</p>
+
+<p><code>c
+git_repository *repo;
+int error = git_repository_open(
+  &amp;repo,
+  "/path/to/repository/on/disk");
+</code></p>
+
+<p>In classic C fashion, libgit2 APIs generally return 0 on success, and a negative error code on failure.
+Occasionally the API documentation will mention the specific error codes that will come back, but you can always check the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/errors.h#files">error header</a> for the values.</p>
+
+<p>If all you have is a path that you <em>think</em> is controlled by git, you can let libgit2 walk the directory structure to find it's owning repository (if there is one).
+This approach works well if your application is dealing primarily with documents, like a text editor.</p>
+
+<p><code>c
+char path[1024];
+if (0 == git_repository_discover(
+  path, 1024,                       // buffer &amp; size
+  "/path/to/a/controlled/file.md",  // where to start
+  true,                             // across filesystems?
+  "/path"))                         // where to stop
+{
+  git_repository *repo;
+  error = git_repository_open(&amp;repo, path);
+}
+</code></p>
+
+<h2>Initialize</h2>
+
+<p>If you want to create a new repository, <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_init"><code>git_repository_init</code></a> is the call for you.</p>
+
+<p><code>c
+git_repository *repo;
+int error = git_repository_init(
+  &amp;repo,                // output
+  "path/to/new/repo",   // path
+  false);               // bare?
+</code></p>
+
+<p>This is kind of like running <code>git init</code> from the command line.
+If you need more control, you'll use <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_init_ext"><code>git_repository_init_ext</code></a>:</p>
+
+<p><code>c
+git_repository *repo;
+git_repository_init_options options =
+  GIT_REPOSITORY_INIT_OPTIONS_INIT;
+// ... (configure options)
+int error = git_repository_init_ext(
+  &amp;repo,                // output
+  "/path/to/new/repo",  // path
+  &amp;options);            // options
+</code></p>
+
+<p>The signature itself looks similar to the simpler version, but that options structure exposes <strong>lots</strong> of behavior.
+Things like:</p>
+
+<ul>
+<li>separating your <code>.git</code> directory from the workdir</li>
+<li>adding a description or using a template</li>
+<li>setting the initial branch name</li>
+</ul>
+
+
+<p>Unfortunately, as of this writing the documentation parser doesn't output structure-field comment-docs, but the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/repository.h#files">header</a> is pretty helpful.</p>
+
+<p>## What now?
+
+I dunno.
+What are you trying to do?
+You could always check out my [other libgit2 posts](/blog/categories/libgit2/) for some ideas.
+Or look for help [everywhere else](https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[libgit2: Cloning]]></title>
@@ -163,6 +254,8 @@ header</a>
 to see what <code>git_clone</code> can do.  If you want to, you could even use the <a href="https://gist.github.com/4693571">code
 from this post</a> as a starting point for your
 own experiments.</p>
+
+<p>Included file 'libgit2_tricks.md' not found in _includes directory</p>
 ]]></content>
   </entry>
   

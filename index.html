@@ -9,8 +9,8 @@
   <meta name="author" content="Ben Straub">
 
   
-  <meta name="description" content="libgit2: Cloning Feb 1st, 2013 Libgit2 aims to make it easy to do interesting things
-with git. What&#8217;s the first thing you always do when &hellip;">
+  <meta name="description" content="libgit2: The Repository Mar 5th, 2013 In libgit2, the git_repository object is the gateway to getting interesting stuff out of git.
+There are &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -96,6 +96,128 @@ with git. What&#8217;s the first thing you always do when &hellip;">
   </header>
   <section id="main">
       
+  
+  
+    <article class="post">
+      
+  <header>
+    
+      <h1 class="entry-title">
+        
+        <a href="/2013/03/05/libgit2-the-repository/">libgit2: The Repository</a>
+        
+      </h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-03-05T12:00:00-08:00" pubdate data-updated="true">Mar 5<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <p>In <a href="http://libgit2.github.com/">libgit2</a>, the <code>git_repository</code> object is the gateway to getting interesting stuff out of git.
+There are several ways to get your hands on one.</p>
+
+<h2>Clone</h2>
+
+<p>If your repository exists on a remote but not on the local machine, you can get it using <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_clone"><code>git_clone</code></a>, and once it&#8217;s done with all the network stuff, it spits out a repository object.
+Check out <a href="/2013/02/01/stupid-libgit2-tricks-cloning/">my post on cloning</a> for more on that.</p>
+
+<h2>Discover</h2>
+
+<p>If you know a particular directory is a git repository, you can just hand the path to <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_open"><code>git_repository_open</code></a>.
+The path can be to a bare repository, a <code>.git</code> folder, or a working directory.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_open</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span>
+  <span class="s">&quot;/path/to/repository/on/disk&quot;</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>In classic C fashion, libgit2 APIs generally return 0 on success, and a negative error code on failure.
+Occasionally the API documentation will mention the specific error codes that will come back, but you can always check the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/errors.h#files">error header</a> for the values.</p>
+
+<p>If all you have is a path that you <em>think</em> is controlled by git, you can let libgit2 walk the directory structure to find it&#8217;s owning repository (if there is one).
+This approach works well if your application is dealing primarily with documents, like a text editor.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="kt">char</span> <span class="n">path</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+<span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">==</span> <span class="n">git_repository_discover</span><span class="p">(</span>
+  <span class="n">path</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span>                       <span class="c1">// buffer &amp; size</span>
+  <span class="s">&quot;/path/to/a/controlled/file.md&quot;</span><span class="p">,</span>  <span class="c1">// where to start</span>
+  <span class="nb">true</span><span class="p">,</span>                             <span class="c1">// across filesystems?</span>
+  <span class="s">&quot;/path&quot;</span><span class="p">))</span>                         <span class="c1">// where to stop</span>
+<span class="p">{</span>
+  <span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+  <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_open</span><span class="p">(</span><span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<h2>Initialize</h2>
+
+<p>If you want to create a new repository, <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_init"><code>git_repository_init</code></a> is the call for you.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_init</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span>                <span class="c1">// output</span>
+  <span class="s">&quot;path/to/new/repo&quot;</span><span class="p">,</span>   <span class="c1">// path</span>
+  <span class="nb">false</span><span class="p">);</span>               <span class="c1">// bare?</span>
+</code></pre></div></figure>
+
+
+<p>This is kind of like running <code>git init</code> from the command line.
+If you need more control, you&#8217;ll use <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_init_ext"><code>git_repository_init_ext</code></a>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="n">git_repository_init_options</span> <span class="n">options</span> <span class="o">=</span>
+  <span class="n">GIT_REPOSITORY_INIT_OPTIONS_INIT</span><span class="p">;</span>
+<span class="c1">// ... (configure options)</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_init_ext</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span>                <span class="c1">// output</span>
+  <span class="s">&quot;/path/to/new/repo&quot;</span><span class="p">,</span>  <span class="c1">// path</span>
+  <span class="o">&amp;</span><span class="n">options</span><span class="p">);</span>            <span class="c1">// options</span>
+</code></pre></div></figure>
+
+
+<p>The signature itself looks similar to the simpler version, but that options structure exposes <strong>lots</strong> of behavior.
+Things like:</p>
+
+<ul>
+<li>separating your <code>.git</code> directory from the workdir</li>
+<li>adding a description or using a template</li>
+<li>setting the initial branch name</li>
+</ul>
+
+
+<p>Unfortunately, as of this writing the documentation parser doesn&#8217;t output structure-field comment-docs, but the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/repository.h#files">header</a> is pretty helpful.</p>
+
+<h2>What now?</h2>
+
+<p>I dunno.
+What are you trying to do?
+You could always check out my <a href="/blog/categories/libgit2/">other libgit2 posts</a> for some ideas.
+Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to">everywhere else</a>.</p>
+
+  
+  
+
+
+    </article>
   
   
     <article class="post">
@@ -257,6 +379,8 @@ header</a>
 to see what <code>git_clone</code> can do.  If you want to, you could even use the <a href="https://gist.github.com/4693571">code
 from this post</a> as a starting point for your
 own experiments.</p>
+
+<p>Included file &#8216;libgit2_tricks.md&#8217; not found in _includes directory</p>
 
   
   

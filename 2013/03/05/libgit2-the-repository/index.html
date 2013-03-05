@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>libgit2: The Repository - Ben Straub</title>
+  <meta name="author" content="Ben Straub">
+
+  
+  <meta name="description" content="Tweet libgit2: The Repository Mar 5th, 2013 In libgit2, the git_repository object is the gateway to getting interesting stuff out of git.
+There are &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ben.github.com/2013/03/05/libgit2-the-repository/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Ben Straub" type="application/atom+xml">
+  
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-35858797-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body >
+  <header role="banner" id="sidebar">
+    <!-- Logo -->
+<ul id="menu">
+
+  <li class="title">
+    <h1 id="title"><a href="/">Ben Straub</a></h1>
+  </li>
+
+
+  <li class="link">
+    <a href="/about">who?</a>
+  </li>
+  <li class="link">
+    <a href="/talks">talks</a>
+  </li>
+
+  <li class="link">
+    <a href="http://twitter.com/benstraub/">twitter</a>
+  </li>
+
+
+  <li class="link">
+    <a href="http://github.com/ben/">github</a>
+  </li>
+
+  <li class="link rss">
+    <a href="/atom.xml">rss feed</a>
+  </li>
+
+  <li class="link">—</li>
+
+  <li class='link'><a class='category' href='/blog/categories/libgit2/'>libgit2</a></li>
+
+</ul>
+
+
+
+<!-- Octopress Love -->
+<aside id="octopress_linkback">
+  <a href="http://octopress.org/">
+    <span class="unicode_square">
+      <span class="unicode_circle">
+        &nbsp;
+      </span>
+    </span>
+    <span class="octopress">Powered by Octopress</span>
+  </a>
+</aside>
+
+  </header>
+  <section id="main">
+    <article class="post">
+  <div class="sharing-box">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://ben.github.com/2013/03/05/libgit2-the-repository/" data-via="benstraub" data-counturl="http://ben.github.com/2013/03/05/libgit2-the-repository/" data-size="large">Tweet</a>
+  
+  
+  
+</div>
+
+  
+  <header>
+    
+      <h1 class="entry-title">libgit2: The Repository</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-03-05T12:00:00-08:00" pubdate data-updated="true">Mar 5<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<p>In <a href="http://libgit2.github.com/">libgit2</a>, the <code>git_repository</code> object is the gateway to getting interesting stuff out of git.
+There are several ways to get your hands on one.</p>
+
+<h2>Clone</h2>
+
+<p>If your repository exists on a remote but not on the local machine, you can get it using <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_clone"><code>git_clone</code></a>, and once it&#8217;s done with all the network stuff, it spits out a repository object.
+Check out <a href="/2013/02/01/stupid-libgit2-tricks-cloning/">my post on cloning</a> for more on that.</p>
+
+<h2>Discover</h2>
+
+<p>If you know a particular directory is a git repository, you can just hand the path to <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_open"><code>git_repository_open</code></a>.
+The path can be to a bare repository, a <code>.git</code> folder, or a working directory.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_open</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span>
+  <span class="s">&quot;/path/to/repository/on/disk&quot;</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>In classic C fashion, libgit2 APIs generally return 0 on success, and a negative error code on failure.
+Occasionally the API documentation will mention the specific error codes that will come back, but you can always check the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/errors.h#files">error header</a> for the values.</p>
+
+<p>If all you have is a path that you <em>think</em> is controlled by git, you can let libgit2 walk the directory structure to find it&#8217;s owning repository (if there is one).
+This approach works well if your application is dealing primarily with documents, like a text editor.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="kt">char</span> <span class="n">path</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+<span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">==</span> <span class="n">git_repository_discover</span><span class="p">(</span>
+  <span class="n">path</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span>                       <span class="c1">// buffer &amp; size</span>
+  <span class="s">&quot;/path/to/a/controlled/file.md&quot;</span><span class="p">,</span>  <span class="c1">// where to start</span>
+  <span class="nb">true</span><span class="p">,</span>                             <span class="c1">// across filesystems?</span>
+  <span class="s">&quot;/path&quot;</span><span class="p">))</span>                         <span class="c1">// where to stop</span>
+<span class="p">{</span>
+  <span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+  <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_open</span><span class="p">(</span><span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<h2>Initialize</h2>
+
+<p>If you want to create a new repository, <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_init"><code>git_repository_init</code></a> is the call for you.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_init</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span>                <span class="c1">// output</span>
+  <span class="s">&quot;path/to/new/repo&quot;</span><span class="p">,</span>   <span class="c1">// path</span>
+  <span class="nb">false</span><span class="p">);</span>               <span class="c1">// bare?</span>
+</code></pre></div></figure>
+
+
+<p>This is kind of like running <code>git init</code> from the command line.
+If you need more control, you&#8217;ll use <a href="http://libgit2.github.com/libgit2/#HEAD/group/repository/git_repository_init_ext"><code>git_repository_init_ext</code></a>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="n">git_repository_init_options</span> <span class="n">options</span> <span class="o">=</span>
+  <span class="n">GIT_REPOSITORY_INIT_OPTIONS_INIT</span><span class="p">;</span>
+<span class="c1">// ... (configure options)</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_repository_init_ext</span><span class="p">(</span>
+  <span class="o">&amp;</span><span class="n">repo</span><span class="p">,</span>                <span class="c1">// output</span>
+  <span class="s">&quot;/path/to/new/repo&quot;</span><span class="p">,</span>  <span class="c1">// path</span>
+  <span class="o">&amp;</span><span class="n">options</span><span class="p">);</span>            <span class="c1">// options</span>
+</code></pre></div></figure>
+
+
+<p>The signature itself looks similar to the simpler version, but that options structure exposes <strong>lots</strong> of behavior.
+Things like:</p>
+
+<ul>
+<li>separating your <code>.git</code> directory from the workdir</li>
+<li>adding a description or using a template</li>
+<li>setting the initial branch name</li>
+</ul>
+
+
+<p>Unfortunately, as of this writing the documentation parser doesn&#8217;t output structure-field comment-docs, but the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/repository.h#files">header</a> is pretty helpful.</p>
+
+<h2>What now?</h2>
+
+<p>I dunno.
+What are you trying to do?
+You could always check out my <a href="/blog/categories/libgit2/">other libgit2 posts</a> for some ideas.
+Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to">everywhere else</a>.</p>
+
+
+
+</article>
+
+  <section class="comments">
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+    <nav role="navigation" id="pagination">
+
+</nav>
+  </section>
+  
+
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'benstraubnet';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ben.github.com/2013/03/05/libgit2-the-repository/';
+        var disqus_url = 'http://ben.github.com/2013/03/05/libgit2-the-repository/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+</body>
+</html>
