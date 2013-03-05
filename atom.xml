@@ -4,7 +4,7 @@
   <title><![CDATA[Ben Straub]]></title>
   <link href="http://ben.github.com/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-03-05T12:21:32-08:00</updated>
+  <updated>2013-03-05T15:37:01-08:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -105,11 +105,34 @@ Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20l
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[libgit2: Cloning]]></title>
-    <link href="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/"/>
-    <updated>2013-02-01T10:00:00-08:00</updated>
-    <id>http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning</id>
-    <content type="html"><![CDATA[<p><a href="http://libgit2.github.com">Libgit2</a> aims to make it easy to do interesting things
+    <title type="html"><![CDATA[2012: Year in Review]]></title>
+    <link href="http://ben.github.com/2013/01/10/year-in-review/"/>
+    <updated>2013-01-10T22:28:00-08:00</updated>
+    <id>http://ben.github.com/2013/01/10/year-in-review</id>
+    <content type="html"><![CDATA[<p>My 2012, through the GitHub lens.  Inspired by <a href="https://github.com/blog/1360-introducing-contributions">Tim Clem</a>.</p>
+
+<p><a href="http://ben.github.com/images/contributions-2012.png"><img src="http://ben.github.com/images/contributions-2012.png" alt="Annotated GitHub Contributions Chart" /></a></p>
+
+<p>I guess it&#8217;s not that surprising, but vacations, travel, and holidays show up pretty clearly.</p>
+
+<p>Yes, there are two honeymoons.  Both of them piggybacked on business travel &#8212; the first was a <a href="http://www.beckyjenson.com/2012/06/hawaiian-simplicity/">destination wedding</a> I photographed with my lovely wife a week after we were married, and the second was glued to a <a href="http://www.openblend.org/en/home">conference</a> I <a href="http://ben.github.com/talks/openblend.html">spoke at</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Stupid Libgit2 Tricks Cloning]]></title>
+    <link href="http://ben.github.com/2013/01/10/stupid-libgit2-tricks-cloning/"/>
+    <updated>2013-01-10T00:00:00-08:00</updated>
+    <id>http://ben.github.com/2013/01/10/stupid-libgit2-tricks-cloning</id>
+    <content type="html"><![CDATA[<p>&#8212;
+layout: post
+title: &#8220;libgit2: Cloning&#8221;
+date: 2013-02-01 10:00
+comments: true</p>
+
+<h2>categories: libgit2</h2>
+
+<p><a href="http://libgit2.github.com">Libgit2</a> aims to make it easy to do interesting things
 with git.  What&#8217;s the first thing you always do when learning git?  That&#8217;s
 right, you clone something from GitHub.  Let&#8217;s get started, shall we? Let&#8217;s get
 some of the boilerplate out of the way:</p>
@@ -238,22 +261,12 @@ to see what <code>git_clone</code> can do.  If you want to, you could even use t
 from this post</a> as a starting point for your
 own experiments.</p>
 
-<p>Included file &#8216;libgit2_tricks.md&#8217; not found in _includes directory</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[2012: Year in Review]]></title>
-    <link href="http://ben.github.com/2013/01/10/year-in-review/"/>
-    <updated>2013-01-10T22:28:00-08:00</updated>
-    <id>http://ben.github.com/2013/01/10/year-in-review</id>
-    <content type="html"><![CDATA[<p>My 2012, through the GitHub lens.  Inspired by <a href="https://github.com/blog/1360-introducing-contributions">Tim Clem</a>.</p>
+<h2>What now?</h2>
 
-<p><a href="http://ben.github.com/images/contributions-2012.png"><img src="http://ben.github.com/images/contributions-2012.png" alt="Annotated GitHub Contributions Chart" /></a></p>
-
-<p>I guess it&#8217;s not that surprising, but vacations, travel, and holidays show up pretty clearly.</p>
-
-<p>Yes, there are two honeymoons.  Both of them piggybacked on business travel &#8212; the first was a <a href="http://www.beckyjenson.com/2012/06/hawaiian-simplicity/">destination wedding</a> I photographed with my lovely wife a week after we were married, and the second was glued to a <a href="http://www.openblend.org/en/home">conference</a> I <a href="http://ben.github.com/talks/openblend.html">spoke at</a>.</p>
+<p>I dunno.
+What are you trying to do?
+You could always check out my <a href="http://ben.github.com/blog/categories/libgit2/">other libgit2 posts</a> for some ideas.
+Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to">everywhere else</a>.</p>
 ]]></content>
   </entry>
   
