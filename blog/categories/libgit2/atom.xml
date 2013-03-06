@@ -4,7 +4,7 @@
   <title><![CDATA[Category: libgit2 | Ben Straub]]></title>
   <link href="http://ben.github.com/blog/categories/libgit2/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-03-05T15:37:20-08:00</updated>
+  <updated>2013-03-05T20:55:15-08:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -94,6 +94,166 @@ Things like:</p>
 
 
 <p>Unfortunately, as of this writing the documentation parser doesn't output structure-field comment-docs, but the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/repository.h#files">header</a> is pretty helpful.</p>
+
+<p>## What now?
+
+I dunno.
+What are you trying to do?
+You could always check out my [other libgit2 posts](/blog/categories/libgit2/) for some ideas.
+Or look for help [everywhere else](https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to).</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[libgit2: Cloning]]></title>
+    <link href="http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/"/>
+    <updated>2013-02-01T10:00:00-08:00</updated>
+    <id>http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning</id>
+    <content type="html"><![CDATA[<p><a href="http://libgit2.github.com">Libgit2</a> aims to make it easy to do interesting things
+with git.  What's the first thing you always do when learning git?  That's
+right, you clone something from GitHub.  Let's get started, shall we? Let's get
+some of the boilerplate out of the way:</p>
+
+<p>```c</p>
+
+<h1>include "git2.h"</h1>
+
+<h1>include &lt;stdio.h></h1>
+
+<p>int main(int argc, char **argv)
+{</p>
+
+<pre><code>const char *url, *path;
+
+if (argc &lt; 3) {
+    printf("USAGE: clone &lt;url&gt; &lt;path&gt;\n");
+    return -1;
+}
+
+url = argv[1];
+path = argv[2];
+return do_clone(url, path);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>What does the do_clone method look like?  Let's start simple:</p>
+
+<p>```c
+static int do_clone(const char <em>url, const char </em>path)
+{</p>
+
+<pre><code>git_repository *repo = NULL;
+int ret = git_clone(&amp;repo, url, path, NULL);
+git_repository_free(repo);
+return ret;
+</code></pre>
+
+<p>}
+```</p>
+
+<p><code>git_clone</code> takes some information, and fills in a pointer for us with
+a <code>git_repository</code> object we can use to do <em>all manner of unholy things</em>.  For
+now, let's ignore the repository itself, except to be good citizens and release
+the memory associated with it.</p>
+
+<p>That <code>NULL</code> parameter?  That's for a <code>git_clone_options</code> structure, which
+defaults to some sensible stuff.  The way our code is written right now, these
+two commands will have the same results:</p>
+
+<p><code>sh
+./clone http://github.com/libgit2/libgit2 ./libgit2
+git clone http://github.com/libgit2/libgit2
+</code></p>
+
+<p>... except that <code>git</code> tells you what it's doing.  Let's fix that.</p>
+
+<p>One of the things you can do with <code>git_clone_options</code> is have libgit2 call
+a function when there is progress to report.  A typical callback looks like
+this:</p>
+
+<p>```c
+static void fetch_progress(</p>
+
+<pre><code>    const git_transfer_progress *stats,
+    void *payload)
+</code></pre>
+
+<p>{</p>
+
+<pre><code>int fetch_percent =
+    (100 * stats-&gt;received_objects) /
+    stats-&gt;total_objects;
+int index_percent =
+    (100 * stats-&gt;indexed_objects) /
+    stats-&gt;total_objects;
+int kbytes = stats-&gt;received_bytes / 1024;
+
+printf("network %3d%% (%4d kb, %5d/%5d)  /"
+        "  index %3d%% (%5d/%5d)\n",
+        fetch_percent, kbytes,
+        stats-&gt;received_objects, stats-&gt;total_objects,
+        index_percent,
+        stats-&gt;indexed_objects, stats-&gt;total_objects);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>That <code>stats</code> object gives you lots of useful stuff:</p>
+
+<ul>
+<li>The number of objects transferred over the network</li>
+<li>The number of objects that the indexer has processed</li>
+<li>The total number of objects expected</li>
+<li>The number of bytes transferred</li>
+</ul>
+
+
+<p>So let's rewrite our <code>do_clone</code> function to plug that in:</p>
+
+<p>```c
+static int do_clone(const char <em>url, const char </em>path)
+{</p>
+
+<pre><code>git_repository *repo = NULL;
+git_clone_options opts = GIT_CLONE_OPTIONS_INIT;
+int ret;
+
+opts.fetch_progress_cb = fetch_progress;
+ret = git_clone(&amp;repo, url, path, &amp;opts);
+git_repository_free(repo);
+return ret;
+</code></pre>
+
+<p>}
+```</p>
+
+<p>If you run this now, the program will tell you what it's doing!  You can watch
+the network transfer happening, and notice that the indexer is doing its job
+<em>at the same time</em>.</p>
+
+<p><code>text
+[...]
+network  73% (   7 kb,    51/   69)  /  index  71% (   49/   69)
+network  75% (   7 kb,    52/   69)  /  index  72% (   50/   69)
+network  76% (   7 kb,    53/   69)  /  index  73% (   51/   69)
+network  78% (   7 kb,    54/   69)  /  index  75% (   52/   69)
+[...]
+</code></p>
+
+<p>If you try this with a large repository, you'll notice a significant pause at
+the end.  All the data has been moved, what's going on?  It turns out that
+doing a checkout can take a non-trivial amount of time.  It also turns out that
+libgit2 will let you report that progress as well!</p>
+
+<p>But that's part of checkout, which warrants its own blog post.  In the
+meantime, check out the <a href="https://github.com/libgit2/libgit2/blob/development/include/git2/clone.h">clone
+header</a>
+to see what <code>git_clone</code> can do.  If you want to, you could even use the <a href="https://gist.github.com/4693571">code
+from this post</a> as a starting point for your
+own experiments.</p>
 
 <p>## What now?
 

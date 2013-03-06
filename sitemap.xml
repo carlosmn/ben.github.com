@@ -9,12 +9,12 @@
         <lastmod>2012-11-06T13:05:01-08:00</lastmod>
     </url>
     <url>
-        <loc>http://ben.github.com/2013/01/10/stupid-libgit2-tricks-cloning/</loc>
-        <lastmod>2013-03-05T15:36:50-08:00</lastmod>
-    </url>
-    <url>
         <loc>http://ben.github.com/2013/01/10/year-in-review/</loc>
         <lastmod>2013-01-11T08:41:55-08:00</lastmod>
+    </url>
+    <url>
+        <loc>http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/</loc>
+        <lastmod>2013-03-05T20:55:06-08:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/2013/03/05/libgit2-the-repository/</loc>
@@ -26,11 +26,11 @@
     </url>
     <url>
         <loc>http://ben.github.com/blog/archives/</loc>
-        <lastmod>2013-03-05T15:36:50-08:00</lastmod>
+        <lastmod>2013-03-05T20:55:06-08:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/</loc>
-        <lastmod>2013-03-05T15:36:50-08:00</lastmod>
+        <lastmod>2013-03-05T20:55:06-08:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/talks/</loc>
