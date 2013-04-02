@@ -9,8 +9,7 @@
   <meta name="author" content="Ben Straub">
 
   
-  <meta name="description" content="libgit2: The Repository Mar 5th, 2013 In libgit2, the git_repository object is the gateway to getting interesting stuff out of git.
-There are &hellip;">
+  <meta name="description" content="libgit2: Checkout Apr 2nd, 2013 So you&#8217;ve got this git repository, and it&#8217;s got a bunch of stuff in it &#8211; refs, trees, blobs, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -96,6 +95,324 @@ There are &hellip;">
   </header>
   <section id="main">
       
+  
+  
+    <article class="post">
+      
+  <header>
+    
+      <h1 class="entry-title">
+        
+        <a href="/2013/04/02/libgit2-checkout/">libgit2: Checkout</a>
+        
+      </h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-02T10:43:00-07:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <p>So you&#8217;ve got this <a href="/2013/03/05/libgit2-the-repository">git repository</a>, and it&#8217;s got a bunch of stuff in it &#8211; refs, trees, blobs, commits &#8211; and you want to work with that stuff.
+One way to think about that stuff is by thinking about how it&#8217;s organized into <a href="http://git-scm.com/2011/07/11/reset.html">three trees</a>, and moving stuff between those trees.
+In libgit2, the way you get stuff from a commit into the index and the working tree is by using the checkout API.</p>
+
+<h2>This isn&#8217;t &#8221;<code>git checkout</code>&#8221;</h2>
+
+<p>The first thing to realize is that libgit2 isn&#8217;t just a reimplementation of the git command line tool.
+That means that some terminology is reused, but doesn&#8217;t necessarily work the same way.
+In libgit2, checkout is all about modifying the index and/or working directory, based on content from the index or a tree in the object database.</p>
+
+<p>Libgit2&#8217;s checkout API has (as of this writing) three modes:</p>
+
+<ul>
+<li><code>git_checkout_head</code> updates the index and working tree to match the content of the tree pointed to by <code>HEAD</code>.</li>
+<li><code>git_checkout_index</code> updates the working directory to match the content of the index.</li>
+<li><code>git_checkout_tree</code> updates the working directory to the content of a specified tree.</li>
+</ul>
+
+
+<p>None of those deal with actually moving <code>HEAD</code> around, which is most of what I use <code>git checkout</code> for, but hey.
+If you want to move refs around, try the refs API.</p>
+
+<h2>Wholesale</h2>
+
+<p>The general form for calling a checkout API is this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_repository</span> <span class="o">*</span><span class="n">repo</span><span class="p">;</span>
+<span class="n">git_checkout_opts</span> <span class="n">opts</span> <span class="o">=</span> <span class="n">GIT_CHECKOUT_OPTS_INIT</span><span class="p">;</span>
+<span class="c1">// customize options...</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_checkout_head</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>That <code>opts</code> structure is where all the good stuff happens.
+The default mode of operation is to</p>
+
+<ol>
+<li>Check every file in the tree that&#8217;s being read for differences with the index and/or working directory, and</li>
+<li>do absolutely nothing to the working directory.</li>
+</ol>
+
+
+<p>By design, you have to be very explicit when you&#8217;re writing stuff to the working directory.
+To specify what strategy you want the checkout to use, you modify <code>opts.checkout_strategy</code>, usually to one of these values:</p>
+
+<ul>
+<li><code>GIT_CHECKOUT_SAFE</code> will update files that match what&#8217;s in the index (files that haven&#8217;t been changed), but won&#8217;t create missing files.</li>
+<li><code>GIT_CHECKOUT_SAFE_CREATE</code> does the above plus creating missing files. This is what <a href="/2013/02/01/stupid-libgit2-tricks-cloning"><code>git_clone</code></a> uses by default.</li>
+<li><code>GIT_CHECKOUT_FORCE</code> does the above, plus overwriting uncommitted changes.
+This is the most like <code>git checkout -f</code>.</li>
+</ul>
+
+
+<p>There are some other behavior flags you can include in this field as well:</p>
+
+<ul>
+<li><code>GIT_CHECKOUT_ALLOW_CONFLICTS</code> allows the checkout to proceed even if there are unresolved merge conflicts (the default is to return an error if any are present).</li>
+<li><code>GIT_CHECKOUT_REMOVE_UNTRACKED</code> removes files that aren&#8217;t being tracked by git (but doesn&#8217;t touch ignored files).</li>
+<li><code>GIT_CHECKOUT_REMOVE_IGNORED</code> removes ignored files that aren&#8217;t in the index (but doesn&#8217;t touch non-ignored files that are untracked).</li>
+</ul>
+
+
+<p>That&#8217;s just a sampling; the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/checkout.h#files">header comments</a>, are pretty helpful for using the rest.</p>
+
+<h2>Progress and notification callbacks</h2>
+
+<p>The <code>git_checkout_*</code> calls are blocking.
+If you want to know how things are going, or display progress to the user, you have to register callbacks.
+There are two types.</p>
+
+<h3>Progress</h3>
+
+<p>The progress callback notifies you as checkout actually writes files to the working directory.
+Here&#8217;s how one might look:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">void</span> <span class="nf">checkout_progress</span><span class="p">(</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">,</span>
+  <span class="kt">size_t</span> <span class="n">current</span><span class="p">,</span>
+  <span class="kt">size_t</span> <span class="n">total</span><span class="p">,</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">payload</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;checkout: %3d%% - %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+    <span class="mi">100</span><span class="o">*</span><span class="n">current</span><span class="o">/</span><span class="n">total</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// ...</span>
+<span class="n">git_checkout_opts</span> <span class="n">opts</span> <span class="o">=</span> <span class="n">GIT_CHECKOUT_OPTS_INIT</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">progress_cb</span> <span class="o">=</span> <span class="n">checkout_progress</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">error</span> <span class="o">=</span> <span class="n">git_checkout_head</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>The output looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>checkout:   0% - (null)
+checkout:  12% - a/a1
+checkout:  25% - a/a1.txt
+checkout:  37% - a/a2.txt
+checkout:  50% - b/b1.txt
+checkout:  62% - b/b2.txt
+checkout:  75% - c/c1.txt
+checkout:  87% - c/c2.txt
+checkout: 100% - master.txt
+</code></pre></div></figure>
+
+
+<h3>&#8220;Notifications&#8221;</h3>
+
+<p>The other callback you can specify is more specific about what&#8217;s going on with the files in the working directory.
+Checkout actually uses diff to do its work, so it doesn&#8217;t always overwrite every file in the working directory.
+If the contents match, no work is done at all.
+That little bit of understanding might make it easier to see this callback in action:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">static</span> <span class="kt">int</span> <span class="nf">checkout_notify_cb</span><span class="p">(</span>
+  <span class="n">git_checkout_notify_t</span> <span class="n">why</span><span class="p">,</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">path</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">git_diff_file</span> <span class="o">*</span><span class="n">baseline</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">git_diff_file</span> <span class="o">*</span><span class="n">target</span><span class="p">,</span>
+  <span class="k">const</span> <span class="n">git_diff_file</span> <span class="o">*</span><span class="n">workdir</span><span class="p">,</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">payload</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;path &#39;%s&#39; - &quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">why</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="n">GIT_CHECKOUT_NOTIFY_CONFLICT</span>:
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;conflict</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="k">case</span> <span class="n">GIT_CHECKOUT_NOTIFY_DIRTY</span>:
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;dirty</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="k">case</span> <span class="n">GIT_CHECKOUT_NOTIFY_UPDATED</span>:
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;updated</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="k">case</span> <span class="n">GIT_CHECKOUT_NOTIFY_UNTRACKED</span>:
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;untracked</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="k">case</span> <span class="n">GIT_CHECKOUT_NOTIFY_IGNORED</span>:
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;ignored</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="nl">default:</span>
+  <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// ...</span>
+<span class="n">git_checkout_opts</span> <span class="n">opts</span> <span class="o">=</span> <span class="n">GIT_CHECKOUT_OPTS_INIT</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">checkout_strategy</span> <span class="o">=</span> <span class="n">GIT_CHECKOUT_SAFE</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">notify_flags</span> <span class="o">=</span>
+  <span class="n">GIT_CHECKOUT_NOTIFY_CONFLICT</span> <span class="o">|</span>
+  <span class="n">GIT_CHECKOUT_NOTIFY_DIRTY</span> <span class="o">|</span>
+  <span class="n">GIT_CHECKOUT_NOTIFY_UPDATED</span> <span class="o">|</span>
+  <span class="n">GIT_CHECKOUT_NOTIFY_UNTRACKED</span> <span class="o">|</span>
+  <span class="n">GIT_CHECKOUT_NOTIFY_IGNORED</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">notify_cb</span> <span class="o">=</span> <span class="n">checkout_notify_cb</span><span class="p">;</span>
+<span class="n">git_checkout_head</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>Here&#8217;s some example output.
+I&#8217;ve created the <code>.gitignore</code> file so that <code>foo</code> will be ignored, and changed the contents of <code>master.txt</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>path &#39;.gitignore&#39; - untracked
+path &#39;a/a1.txt&#39; - dirty
+path &#39;foo&#39; - ignored
+checkout:   0% - (null)
+</code></pre></div></figure>
+
+
+<p>I&#8217;ve left the progress callback as-is, so you can see how these two features interact &#8211; notifications happen as checkout is <em>determining what to do</em>, and progress callbacks happen as checkout is <em>doing the things</em>.</p>
+
+<p>That&#8217;s when the checkout strategy is set to <code>GIT_CHECKOUT_SAFE_CREATE</code>.
+Watch what happens when I change it to this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">opts</span><span class="p">.</span><span class="n">checkout_strategy</span> <span class="o">=</span>
+  <span class="n">GIT_CHECKOUT_FORCE</span> <span class="o">|</span>
+  <span class="n">GIT_CHECKOUT_REMOVE_UNTRACKED</span><span class="p">;</span>
+</code></pre></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>path &#39;.gitignore&#39; - untracked
+path &#39;a/a1.txt&#39; - dirty
+path &#39;a/a1.txt&#39; - updated
+path &#39;foo&#39; - ignored
+checkout:   0% - (null)
+checkout:  50% - .gitignore
+checkout: 100% - a/a1.txt
+</code></pre></div></figure>
+
+
+<p>You can see that <code>a/a1.txt</code> was updated in the index, and if we had specified a progress callback, you&#8217;d see it being written in the working directory.</p>
+
+<p>We also asked checkout to remove untracked files (but not ignored ones), so it deleted the <code>.gitignore</code> file, leaving <code>foo</code> as untracked instead of ignored.
+If we run it again:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>path &#39;foo&#39; - untracked
+checkout:   0% - (null)
+checkout: 100% - foo
+</code></pre></div></figure>
+
+
+<p>&#8230; it removes the <code>foo</code> file as well.</p>
+
+<p>One other capability that the notification callback gives you is <em>the ability to cancel the checkout</em> before any changes have been written to disk.
+Just return something other than <code>0</code>, and the process will simply be aborted.</p>
+
+<h2>One file at a time</h2>
+
+<p>What if you don&#8217;t want to check out the entire working directory?
+What if you just want to discard the changes made to one file?
+The options structure has a field for you &#8211; it&#8217;s named <code>paths</code>, and it&#8217;s of type <code>git_strarray</code>.</p>
+
+<p>Despite the name, it&#8217;s actually an array of fnmatch-patterns, like <code>"foo/*"</code> &#8211; the same format as you&#8217;d use in a <code>.gitignore</code> file.
+Continuing our earlier example, if I wanted to limit the files checkout is looking at to just the files in the <code>a</code> directory, I could do this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="kt">char</span> <span class="o">*</span><span class="n">paths</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span> <span class="s">&quot;a/*&quot;</span> <span class="p">};</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">paths</span><span class="p">.</span><span class="n">strings</span> <span class="o">=</span> <span class="n">paths</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">paths</span><span class="p">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</code></pre></div></figure>
+
+
+<p>And the output would look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='text'>path &#39;a/a1.txt&#39; - dirty
+path &#39;a/a1.txt&#39; - updated
+checkout:   0% - (null)
+checkout: 100% - a/a1.txt
+</code></pre></div></figure>
+
+
+<p>Note there&#8217;s no mention of <code>.gitignore</code> or <code>foo</code>; they&#8217;re filtered out by path matching before any of the diff logic is even applied.</p>
+
+<h2>Not <code>HEAD</code></h2>
+
+<p>All of the examples we&#8217;ve seen so far use <code>git_checkout_head</code>.
+What if you want to pull out content that isn&#8217;t from <code>HEAD</code>?
+We saw in the beginning that you can easily pull content out of the index by doing this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_checkout_index</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>This gets content from the index and writes it to the working directory.
+It&#8217;s similar to doing <code>git checkout [file]</code> without specifying a branch or revision.
+That <code>NULL</code> parameter could also refer to a separate index, which is a bit beyond the scope of this post.</p>
+
+<p>You can also pull content from elsewhere in the history.
+For instance, to replicate something like <code>git checkout HEAD~~ master.txt</code>, you could do this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="kt">char</span> <span class="o">*</span><span class="n">paths</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;master.txt&quot;</span><span class="p">};</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">paths</span><span class="p">.</span><span class="n">strings</span> <span class="o">=</span> <span class="n">paths</span><span class="p">;</span>
+<span class="n">opts</span><span class="p">.</span><span class="n">paths</span><span class="p">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+
+<span class="c1">// Get &quot;HEAD~~&quot;</span>
+<span class="n">git_commit</span> <span class="o">*</span><span class="n">commit</span><span class="p">;</span>
+<span class="n">git_revparse_single</span><span class="p">((</span><span class="n">git_object</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">commit</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;HEAD~~&quot;</span><span class="p">);</span>
+
+<span class="c1">// Do the checkout</span>
+<span class="n">git_checkout_tree</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">commit</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">opts</span><span class="p">);</span>
+
+<span class="c1">// Clean up</span>
+<span class="n">git_commit_free</span><span class="p">(</span><span class="n">commit</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<h2>That&#8217;s about it</h2>
+
+<p><strong>NOTE: You should do error checking.</strong>
+You should also check out the documentations comments in the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/checkout.h#files"><code>git2/checkout.h</code></a> header &#8211; they&#8217;re really well-written, and they cover more than what I&#8217;ve got here.</p>
+
+<h2>What now?</h2>
+
+<p>I dunno.
+What are you trying to do?
+You could always check out my <a href="/blog/categories/libgit2/">other libgit2 posts</a> for some ideas.
+Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to">everywhere else</a>.</p>
+
+  
+  
+
+
+    </article>
   
   
     <article class="post">

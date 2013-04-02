@@ -4,7 +4,7 @@
   <title><![CDATA[Category: libgit2 | Ben Straub]]></title>
   <link href="http://ben.github.com/blog/categories/libgit2/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-04-02T14:08:27-07:00</updated>
+  <updated>2013-04-02T15:07:52-07:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -12,6 +12,310 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[libgit2: Checkout]]></title>
+    <link href="http://ben.github.com/2013/04/02/libgit2-checkout/"/>
+    <updated>2013-04-02T10:43:00-07:00</updated>
+    <id>http://ben.github.com/2013/04/02/libgit2-checkout</id>
+    <content type="html"><![CDATA[<p>So you've got this <a href="/2013/03/05/libgit2-the-repository">git repository</a>, and it's got a bunch of stuff in it -- refs, trees, blobs, commits -- and you want to work with that stuff.
+One way to think about that stuff is by thinking about how it's organized into <a href="http://git-scm.com/2011/07/11/reset.html">three trees</a>, and moving stuff between those trees.
+In libgit2, the way you get stuff from a commit into the index and the working tree is by using the checkout API.</p>
+
+<h2>This isn't "<code>git checkout</code>"</h2>
+
+<p>The first thing to realize is that libgit2 isn't just a reimplementation of the git command line tool.
+That means that some terminology is reused, but doesn't necessarily work the same way.
+In libgit2, checkout is all about modifying the index and/or working directory, based on content from the index or a tree in the object database.</p>
+
+<p>Libgit2's checkout API has (as of this writing) three modes:</p>
+
+<ul>
+<li><code>git_checkout_head</code> updates the index and working tree to match the content of the tree pointed to by <code>HEAD</code>.</li>
+<li><code>git_checkout_index</code> updates the working directory to match the content of the index.</li>
+<li><code>git_checkout_tree</code> updates the working directory to the content of a specified tree.</li>
+</ul>
+
+
+<p>None of those deal with actually moving <code>HEAD</code> around, which is most of what I use <code>git checkout</code> for, but hey.
+If you want to move refs around, try the refs API.</p>
+
+<h2>Wholesale</h2>
+
+<p>The general form for calling a checkout API is this:</p>
+
+<p><code>c
+git_repository *repo;
+git_checkout_opts opts = GIT_CHECKOUT_OPTS_INIT;
+// customize options...
+int error = git_checkout_head(repo, &amp;opts);
+</code></p>
+
+<p>That <code>opts</code> structure is where all the good stuff happens.
+The default mode of operation is to</p>
+
+<ol>
+<li>Check every file in the tree that's being read for differences with the index and/or working directory, and</li>
+<li>do absolutely nothing to the working directory.</li>
+</ol>
+
+
+<p>By design, you have to be very explicit when you're writing stuff to the working directory.
+To specify what strategy you want the checkout to use, you modify <code>opts.checkout_strategy</code>, usually to one of these values:</p>
+
+<ul>
+<li><code>GIT_CHECKOUT_SAFE</code> will update files that match what's in the index (files that haven't been changed), but won't create missing files.</li>
+<li><code>GIT_CHECKOUT_SAFE_CREATE</code> does the above plus creating missing files. This is what <a href="/2013/02/01/stupid-libgit2-tricks-cloning"><code>git_clone</code></a> uses by default.</li>
+<li><code>GIT_CHECKOUT_FORCE</code> does the above, plus overwriting uncommitted changes.
+This is the most like <code>git checkout -f</code>.</li>
+</ul>
+
+
+<p>There are some other behavior flags you can include in this field as well:</p>
+
+<ul>
+<li><code>GIT_CHECKOUT_ALLOW_CONFLICTS</code> allows the checkout to proceed even if there are unresolved merge conflicts (the default is to return an error if any are present).</li>
+<li><code>GIT_CHECKOUT_REMOVE_UNTRACKED</code> removes files that aren't being tracked by git (but doesn't touch ignored files).</li>
+<li><code>GIT_CHECKOUT_REMOVE_IGNORED</code> removes ignored files that aren't in the index (but doesn't touch non-ignored files that are untracked).</li>
+</ul>
+
+
+<p>That's just a sampling; the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/checkout.h#files">header comments</a>, are pretty helpful for using the rest.</p>
+
+<h2>Progress and notification callbacks</h2>
+
+<p>The <code>git_checkout_*</code> calls are blocking.
+If you want to know how things are going, or display progress to the user, you have to register callbacks.
+There are two types.</p>
+
+<h3>Progress</h3>
+
+<p>The progress callback notifies you as checkout actually writes files to the working directory.
+Here's how one might look:</p>
+
+<p>```c
+static void checkout_progress(
+  const char <em>path,
+  size_t current,
+  size_t total,
+  void </em>payload)
+{
+  printf("checkout: %3d%% - %s\n",</p>
+
+<pre><code>100*current/total,
+path);
+</code></pre>
+
+<p>}</p>
+
+<p>// ...
+git_checkout_opts opts = GIT_CHECKOUT_OPTS_INIT;
+opts.progress_cb = checkout_progress;
+int error = git_checkout_head(repo, &amp;opts);
+```</p>
+
+<p>The output looks something like this:</p>
+
+<p><code>text
+checkout:   0% - (null)
+checkout:  12% - a/a1
+checkout:  25% - a/a1.txt
+checkout:  37% - a/a2.txt
+checkout:  50% - b/b1.txt
+checkout:  62% - b/b2.txt
+checkout:  75% - c/c1.txt
+checkout:  87% - c/c2.txt
+checkout: 100% - master.txt
+</code></p>
+
+<h3>"Notifications"</h3>
+
+<p>The other callback you can specify is more specific about what's going on with the files in the working directory.
+Checkout actually uses diff to do its work, so it doesn't always overwrite every file in the working directory.
+If the contents match, no work is done at all.
+That little bit of understanding might make it easier to see this callback in action:</p>
+
+<p>```c
+static int checkout_notify_cb(
+  git_checkout_notify_t why,
+  const char <em>path,
+  const git_diff_file </em>baseline,
+  const git_diff_file <em>target,
+  const git_diff_file </em>workdir,
+  void *payload)
+{
+  printf("path '%s' - ", path);
+  switch (why) {
+  case GIT_CHECKOUT_NOTIFY_CONFLICT:</p>
+
+<pre><code>printf("conflict\n");
+break;
+</code></pre>
+
+<p>  case GIT_CHECKOUT_NOTIFY_DIRTY:</p>
+
+<pre><code>printf("dirty\n");
+break;
+</code></pre>
+
+<p>  case GIT_CHECKOUT_NOTIFY_UPDATED:</p>
+
+<pre><code>printf("updated\n");
+break;
+</code></pre>
+
+<p>  case GIT_CHECKOUT_NOTIFY_UNTRACKED:</p>
+
+<pre><code>printf("untracked\n");
+break;
+</code></pre>
+
+<p>  case GIT_CHECKOUT_NOTIFY_IGNORED:</p>
+
+<pre><code>printf("ignored\n");
+break;
+</code></pre>
+
+<p>  default:
+  break;
+  }</p>
+
+<p>  return 0;
+}</p>
+
+<p>// ...
+git_checkout_opts opts = GIT_CHECKOUT_OPTS_INIT;
+opts.checkout_strategy = GIT_CHECKOUT_SAFE;
+opts.notify_flags =
+  GIT_CHECKOUT_NOTIFY_CONFLICT |
+  GIT_CHECKOUT_NOTIFY_DIRTY |
+  GIT_CHECKOUT_NOTIFY_UPDATED |
+  GIT_CHECKOUT_NOTIFY_UNTRACKED |
+  GIT_CHECKOUT_NOTIFY_IGNORED;
+opts.notify_cb = checkout_notify_cb;
+git_checkout_head(repo, &amp;opts);
+```</p>
+
+<p>Here's some example output.
+I've created the <code>.gitignore</code> file so that <code>foo</code> will be ignored, and changed the contents of <code>master.txt</code>.</p>
+
+<p><code>text
+path '.gitignore' - untracked
+path 'a/a1.txt' - dirty
+path 'foo' - ignored
+checkout:   0% - (null)
+</code></p>
+
+<p>I've left the progress callback as-is, so you can see how these two features interact -- notifications happen as checkout is <em>determining what to do</em>, and progress callbacks happen as checkout is <em>doing the things</em>.</p>
+
+<p>That's when the checkout strategy is set to <code>GIT_CHECKOUT_SAFE_CREATE</code>.
+Watch what happens when I change it to this:</p>
+
+<p><code>c
+opts.checkout_strategy =
+  GIT_CHECKOUT_FORCE |
+  GIT_CHECKOUT_REMOVE_UNTRACKED;
+</code></p>
+
+<p><code>text
+path '.gitignore' - untracked
+path 'a/a1.txt' - dirty
+path 'a/a1.txt' - updated
+path 'foo' - ignored
+checkout:   0% - (null)
+checkout:  50% - .gitignore
+checkout: 100% - a/a1.txt
+</code></p>
+
+<p>You can see that <code>a/a1.txt</code> was updated in the index, and if we had specified a progress callback, you'd see it being written in the working directory.</p>
+
+<p>We also asked checkout to remove untracked files (but not ignored ones), so it deleted the <code>.gitignore</code> file, leaving <code>foo</code> as untracked instead of ignored.
+If we run it again:</p>
+
+<p>```text
+path 'foo' - untracked
+checkout:   0% - (null)
+checkout: 100% - foo</p>
+
+<p>```</p>
+
+<p>... it removes the <code>foo</code> file as well.</p>
+
+<p>One other capability that the notification callback gives you is <em>the ability to cancel the checkout</em> before any changes have been written to disk.
+Just return something other than <code>0</code>, and the process will simply be aborted.</p>
+
+<h2>One file at a time</h2>
+
+<p>What if you don't want to check out the entire working directory?
+What if you just want to discard the changes made to one file?
+The options structure has a field for you -- it's named <code>paths</code>, and it's of type <code>git_strarray</code>.</p>
+
+<p>Despite the name, it's actually an array of fnmatch-patterns, like <code>"foo/*"</code> -- the same format as you'd use in a <code>.gitignore</code> file.
+Continuing our earlier example, if I wanted to limit the files checkout is looking at to just the files in the <code>a</code> directory, I could do this:</p>
+
+<p><code>c
+char *paths[] = { "a/*" };
+opts.paths.strings = paths;
+opts.paths.count = 1;
+</code></p>
+
+<p>And the output would look something like this:</p>
+
+<p><code>text
+path 'a/a1.txt' - dirty
+path 'a/a1.txt' - updated
+checkout:   0% - (null)
+checkout: 100% - a/a1.txt
+</code></p>
+
+<p>Note there's no mention of <code>.gitignore</code> or <code>foo</code>; they're filtered out by path matching before any of the diff logic is even applied.</p>
+
+<h2>Not <code>HEAD</code></h2>
+
+<p>All of the examples we've seen so far use <code>git_checkout_head</code>.
+What if you want to pull out content that isn't from <code>HEAD</code>?
+We saw in the beginning that you can easily pull content out of the index by doing this:</p>
+
+<p><code>c
+git_checkout_index(repo, NULL, &amp;opts);
+</code></p>
+
+<p>This gets content from the index and writes it to the working directory.
+It's similar to doing <code>git checkout [file]</code> without specifying a branch or revision.
+That <code>NULL</code> parameter could also refer to a separate index, which is a bit beyond the scope of this post.</p>
+
+<p>You can also pull content from elsewhere in the history.
+For instance, to replicate something like <code>git checkout HEAD~~ master.txt</code>, you could do this:</p>
+
+<p>```c
+char *paths[] = {"master.txt"};
+opts.paths.strings = paths;
+opts.paths.count = 1;</p>
+
+<p>// Get "HEAD<del>"
+git_commit <em>commit;
+git_revparse_single((git_object</em>)&amp;commit, repo, "HEAD</del>");</p>
+
+<p>// Do the checkout
+git_checkout_tree(repo, commit, &amp;opts);</p>
+
+<p>// Clean up
+git_commit_free(commit);
+```</p>
+
+<h2>That's about it</h2>
+
+<p><strong>NOTE: You should do error checking.</strong>
+You should also check out the documentations comments in the <a href="https://github.com/libgit2/libgit2/blob/HEAD/include/git2/checkout.h#files"><code>git2/checkout.h</code></a> header -- they're really well-written, and they cover more than what I've got here.</p>
+
+<p>## What now?
+
+I dunno.
+What are you trying to do?
+You could always check out my [other libgit2 posts](/blog/categories/libgit2/) for some ideas.
+Or look for help [everywhere else](https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[libgit2: The Repository]]></title>
