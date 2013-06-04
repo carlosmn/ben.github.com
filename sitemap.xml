@@ -14,15 +14,19 @@
     </url>
     <url>
         <loc>http://ben.github.com/2013/02/01/stupid-libgit2-tricks-cloning/</loc>
-        <lastmod>2013-05-02T12:32:24-07:00</lastmod>
+        <lastmod>2013-05-26T11:47:36-07:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/2013/03/05/libgit2-the-repository/</loc>
-        <lastmod>2013-05-02T12:32:24-07:00</lastmod>
+        <lastmod>2013-05-26T11:47:53-07:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/2013/04/02/libgit2-checkout/</loc>
-        <lastmod>2013-05-02T12:32:24-07:00</lastmod>
+        <lastmod>2013-05-26T11:48:06-07:00</lastmod>
+    </url>
+    <url>
+        <loc>http://ben.github.com/2013/06/03/refs-tags-and-branching/</loc>
+        <lastmod>2013-06-03T19:34:39-07:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/about/</loc>
@@ -30,11 +34,11 @@
     </url>
     <url>
         <loc>http://ben.github.com/blog/archives/</loc>
-        <lastmod>2013-04-02T15:07:15-07:00</lastmod>
+        <lastmod>2013-06-03T19:34:39-07:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/</loc>
-        <lastmod>2013-04-02T15:07:15-07:00</lastmod>
+        <lastmod>2013-06-03T19:34:39-07:00</lastmod>
     </url>
     <url>
         <loc>http://ben.github.com/talks/</loc>

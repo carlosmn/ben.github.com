@@ -4,7 +4,7 @@
   <title><![CDATA[Category: libgit2 | Ben Straub]]></title>
   <link href="http://ben.github.com/blog/categories/libgit2/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-05-21T08:25:23-07:00</updated>
+  <updated>2013-06-03T19:36:11-07:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -12,6 +12,183 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[libgit2: Refs, Tags, and Branching]]></title>
+    <link href="http://ben.github.com/2013/06/03/refs-tags-and-branching/"/>
+    <updated>2013-06-03T16:00:00-07:00</updated>
+    <id>http://ben.github.com/2013/06/03/refs-tags-and-branching</id>
+    <content type="html"><![CDATA[<p>Refs are a powerful way of annotating a git repository's history.
+Libgit2, of course, provides several ways of working with them.</p>
+
+<h2>Refs</h2>
+
+<p>There are several ways to get a handle on a ref in libgit2.
+If you just want one:</p>
+
+<p><code>c
+git_reference *ref;
+git_reference_lookup(&amp;ref, repo, "refs/heads/master");
+</code></p>
+
+<p>The string argument has to be the full name of the ref; just <code>master</code> won't do.
+There's also a shortcut to use a more humane ref name:</p>
+
+<p><code>c
+git_reference_dwim(&amp;ref, repo, "master");
+</code></p>
+
+<p>That one applies the <a href="http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions">standard git precedence rules</a> to figure out which ref you mean.</p>
+
+<p>There's also a way of getting to <em>all</em> of the refs in a repository:</p>
+
+<p>```c
+int each_ref(git_reference <em>ref, void </em>payload)
+{
+  printf("  %s\n", git_reference_name(ref));
+  return 0;
+}</p>
+
+<p>git_reference_foreach(repo, each_ref, NULL);
+```</p>
+
+<p>Once you have a <code>git_reference*</code>, what can you do with it? Well, you can check to see if it's symbolic (like <code>HEAD</code> usually is) or direct (like <code>master</code> usually is):</p>
+
+<p>```c
+switch(git_reference_type(ref)) {
+  case GIT_REF_OID:
+  {</p>
+
+<pre><code>char oidstr[41] = {0};
+git_oid_fmt(oidstr, git_reference_target(ref));
+printf("It's a direct reference to %s\n", oidstr);
+break;
+</code></pre>
+
+<p>  }
+  case GIT_REF_SYMBOLIC:
+  {</p>
+
+<pre><code>printf("It's a symbolic reference to '%s'\n",
+  git_reference_symbolic_target(ref));
+break;
+</code></pre>
+
+<p>  }
+}
+```</p>
+
+<p>You can change its target, which <a href="/2013/04/02/libgit2-checkout/">in combination with <code>git_checkout_head</code></a> would get close to the branch-switching behavior of <code>git checkout</code>:</p>
+
+<p>```c
+git_reference *new_ref;
+git_reference_symbolic_set_target(&amp;new_ref, ref,</p>
+
+<pre><code>                              "refs/heads/devel");
+</code></pre>
+
+<p>```</p>
+
+<p>Note that a <code>git_reference</code> is conceptually immutable, so changing the target of one gives you a new instance rather than modifying the one you already have.</p>
+
+<p>You can also create new references. This is a good start towards <code>git checkout -b</code>:</p>
+
+<p>```c
+git_object *obj;
+git_revparse_single(&amp;obj, repo, "master");
+git_reference_create(&amp;new_ref, repo, "refs/heads/feature1",</p>
+
+<pre><code>                 git_object_id(obj), 1);
+</code></pre>
+
+<p>git_object_free(obj);
+```</p>
+
+<h2>Tags</h2>
+
+<p>Git tags come in two flavors: <a href="http://git-scm.com/book/en/Git-Basics-Tagging">lightweight and annotated</a>.
+Lightweight tags are just regular references, so you can handle them with the refs API.
+But annotated tags have structured data stored in the object database.
+This is represented in libgit2 as a <code>git_tag</code> structure.</p>
+
+<p>Again, there are several ways to get your hands on a tag annotation.
+You can do a direct lookup if you know the hash of the annotation:</p>
+
+<p><code>c
+git_oid oid;
+git_oid_fromstr(&amp;oid,
+  "bbea158ddb36042aa47ce1e4d0188684b20157d3");
+git_tag *tag;
+git_tag_lookup(&amp;tag, repo, &amp;oid);
+</code></p>
+
+<p>If all you know is the tag's name, it takes a couple of steps:</p>
+
+<p><code>c
+git_reference *ref;
+git_reference_lookup(&amp;ref, repo, "refs/tags/annotated");
+git_tag *tag;
+git_reference_peel((git_object**)&amp;tag, ref, GIT_OBJ_TAG);
+</code></p>
+
+<p>What can you do with one of these guys?
+Mostly they're for inspecting properties:</p>
+
+<p><code>c
+// Get the full name of the tag
+const char *name = git_tag_name(tag);
+// Get the tag's message
+const char *msg = git_tag_message(tag);
+// Get the targeted object's ID
+git_oid *target = git_tag_target_id(tag);
+// Get information about the tagger
+git_signature *sig = git_tag_signature(tag);
+</code></p>
+
+<p>How do you create tags?
+As I mentioned above, lightweight tags are just references, so you'd use <code>git_reference_create</code>, and give it a name like <code>refs/tags/foo</code>.
+Annotated tags have their own creation call:</p>
+
+<p>```c
+  git_signature *sig;
+  git_signature_now(&amp;sig, "Mr. Tagger", "mr@tagger.com");
+  git_oid annotation_id;
+  git_tag_create(</p>
+
+<pre><code>&amp;annotation_id,      // newly-created object's id
+repo,                // repository
+"new_annotated_tag", // tag name
+obj,                 // tag target
+sig,                 // signature
+"A message",         // message
+1);                  // force if name collides
+</code></pre>
+
+<p>```</p>
+
+<p>It turns out an annotated tag is just a lightweight tag (regular ref) that points to a tag annotation object, which in turn points to something else.
+So you can create an annotation with <code>git_tag_annotation_create</code>, then create the tag ref separately.</p>
+
+<p>Don't forget this is C; always free your newly-created heap objects with <code>git_*_free</code> calls.
+In this case:</p>
+
+<p><code>c
+git_signature_free(sig);
+git_object_free(obj);
+git_tag_free(tag);
+git_reference_free(ref);
+</code></p>
+
+<p>The rule of thumb here is if you declared it as a pointer, it probably needs freeing.</p>
+
+<p>## What now?
+
+I dunno.
+What are you trying to do?
+You could always check out my [other libgit2 posts](/blog/categories/libgit2/) for some ideas.
+Or look for help [everywhere else](https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[libgit2: Checkout]]></title>

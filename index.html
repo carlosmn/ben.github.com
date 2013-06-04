@@ -9,7 +9,8 @@
   <meta name="author" content="Ben Straub">
 
   
-  <meta name="description" content="libgit2: Checkout Apr 2nd, 2013 So you&#8217;ve got this git repository, and it&#8217;s got a bunch of stuff in it &#8211; refs, trees, blobs, &hellip;">
+  <meta name="description" content="libgit2: Refs, Tags, and Branching Jun 3rd, 2013 Refs are a powerful way of annotating a git repository&#8217;s history.
+Libgit2, of course, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -95,6 +96,200 @@
   </header>
   <section id="main">
       
+  
+  
+    <article class="post">
+      
+  <header>
+    
+      <h1 class="entry-title">
+        
+        <a href="/2013/06/03/refs-tags-and-branching/">libgit2: Refs, Tags, and Branching</a>
+        
+        
+      </h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-03T16:00:00-07:00" pubdate data-updated="true">Jun 3<span>rd</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <p>Refs are a powerful way of annotating a git repository&#8217;s history.
+Libgit2, of course, provides several ways of working with them.</p>
+
+<h2>Refs</h2>
+
+<p>There are several ways to get a handle on a ref in libgit2.
+If you just want one:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_reference</span> <span class="o">*</span><span class="n">ref</span><span class="p">;</span>
+<span class="n">git_reference_lookup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;refs/heads/master&quot;</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>The string argument has to be the full name of the ref; just <code>master</code> won&#8217;t do.
+There&#8217;s also a shortcut to use a more humane ref name:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_reference_dwim</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;master&quot;</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>That one applies the <a href="http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions">standard git precedence rules</a> to figure out which ref you mean.</p>
+
+<p>There&#8217;s also a way of getting to <em>all</em> of the refs in a repository:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="kt">int</span> <span class="nf">each_ref</span><span class="p">(</span><span class="n">git_reference</span> <span class="o">*</span><span class="n">ref</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">payload</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&quot;  %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">git_reference_name</span><span class="p">(</span><span class="n">ref</span><span class="p">));</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">git_reference_foreach</span><span class="p">(</span><span class="n">repo</span><span class="p">,</span> <span class="n">each_ref</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>Once you have a <code>git_reference*</code>, what can you do with it? Well, you can check to see if it&#8217;s symbolic (like <code>HEAD</code> usually is) or direct (like <code>master</code> usually is):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="k">switch</span><span class="p">(</span><span class="n">git_reference_type</span><span class="p">(</span><span class="n">ref</span><span class="p">))</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="n">GIT_REF_OID</span>:
+  <span class="p">{</span>
+    <span class="kt">char</span> <span class="n">oidstr</span><span class="p">[</span><span class="mi">41</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">git_oid_fmt</span><span class="p">(</span><span class="n">oidstr</span><span class="p">,</span> <span class="n">git_reference_target</span><span class="p">(</span><span class="n">ref</span><span class="p">));</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;It&#39;s a direct reference to %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">oidstr</span><span class="p">);</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">case</span> <span class="n">GIT_REF_SYMBOLIC</span>:
+  <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;It&#39;s a symbolic reference to &#39;%s&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+      <span class="n">git_reference_symbolic_target</span><span class="p">(</span><span class="n">ref</span><span class="p">));</span>
+    <span class="k">break</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>You can change its target, which <a href="/2013/04/02/libgit2-checkout/">in combination with <code>git_checkout_head</code></a> would get close to the branch-switching behavior of <code>git checkout</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_reference</span> <span class="o">*</span><span class="n">new_ref</span><span class="p">;</span>
+<span class="n">git_reference_symbolic_set_target</span><span class="p">(</span><span class="o">&amp;</span><span class="n">new_ref</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span>
+                                  <span class="s">&quot;refs/heads/devel&quot;</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>Note that a <code>git_reference</code> is conceptually immutable, so changing the target of one gives you a new instance rather than modifying the one you already have.</p>
+
+<p>You can also create new references. This is a good start towards <code>git checkout -b</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_object</span> <span class="o">*</span><span class="n">obj</span><span class="p">;</span>
+<span class="n">git_revparse_single</span><span class="p">(</span><span class="o">&amp;</span><span class="n">obj</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;master&quot;</span><span class="p">);</span>
+<span class="n">git_reference_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">new_ref</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;refs/heads/feature1&quot;</span><span class="p">,</span>
+                     <span class="n">git_object_id</span><span class="p">(</span><span class="n">obj</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+<span class="n">git_object_free</span><span class="p">(</span><span class="n">obj</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<h2>Tags</h2>
+
+<p>Git tags come in two flavors: <a href="http://git-scm.com/book/en/Git-Basics-Tagging">lightweight and annotated</a>.
+Lightweight tags are just regular references, so you can handle them with the refs API.
+But annotated tags have structured data stored in the object database.
+This is represented in libgit2 as a <code>git_tag</code> structure.</p>
+
+<p>Again, there are several ways to get your hands on a tag annotation.
+You can do a direct lookup if you know the hash of the annotation:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_oid</span> <span class="n">oid</span><span class="p">;</span>
+<span class="n">git_oid_fromstr</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oid</span><span class="p">,</span>
+  <span class="s">&quot;bbea158ddb36042aa47ce1e4d0188684b20157d3&quot;</span><span class="p">);</span>
+<span class="n">git_tag</span> <span class="o">*</span><span class="n">tag</span><span class="p">;</span>
+<span class="n">git_tag_lookup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tag</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oid</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>If all you know is the tag&#8217;s name, it takes a couple of steps:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_reference</span> <span class="o">*</span><span class="n">ref</span><span class="p">;</span>
+<span class="n">git_reference_lookup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ref</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;refs/tags/annotated&quot;</span><span class="p">);</span>
+<span class="n">git_tag</span> <span class="o">*</span><span class="n">tag</span><span class="p">;</span>
+<span class="n">git_reference_peel</span><span class="p">((</span><span class="n">git_object</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">GIT_OBJ_TAG</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>What can you do with one of these guys?
+Mostly they&#8217;re for inspecting properties:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="c1">// Get the full name of the tag</span>
+<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span> <span class="o">=</span> <span class="n">git_tag_name</span><span class="p">(</span><span class="n">tag</span><span class="p">);</span>
+<span class="c1">// Get the tag&#39;s message</span>
+<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">msg</span> <span class="o">=</span> <span class="n">git_tag_message</span><span class="p">(</span><span class="n">tag</span><span class="p">);</span>
+<span class="c1">// Get the targeted object&#39;s ID</span>
+<span class="n">git_oid</span> <span class="o">*</span><span class="n">target</span> <span class="o">=</span> <span class="n">git_tag_target_id</span><span class="p">(</span><span class="n">tag</span><span class="p">);</span>
+<span class="c1">// Get information about the tagger</span>
+<span class="n">git_signature</span> <span class="o">*</span><span class="n">sig</span> <span class="o">=</span> <span class="n">git_tag_signature</span><span class="p">(</span><span class="n">tag</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>How do you create tags?
+As I mentioned above, lightweight tags are just references, so you&#8217;d use <code>git_reference_create</code>, and give it a name like <code>refs/tags/foo</code>.
+Annotated tags have their own creation call:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'>  <span class="n">git_signature</span> <span class="o">*</span><span class="n">sig</span><span class="p">;</span>
+  <span class="n">git_signature_now</span><span class="p">(</span><span class="o">&amp;</span><span class="n">sig</span><span class="p">,</span> <span class="s">&quot;Mr. Tagger&quot;</span><span class="p">,</span> <span class="s">&quot;mr@tagger.com&quot;</span><span class="p">);</span>
+  <span class="n">git_oid</span> <span class="n">annotation_id</span><span class="p">;</span>
+  <span class="n">git_tag_create</span><span class="p">(</span>
+    <span class="o">&amp;</span><span class="n">annotation_id</span><span class="p">,</span>      <span class="c1">// newly-created object&#39;s id</span>
+    <span class="n">repo</span><span class="p">,</span>                <span class="c1">// repository</span>
+    <span class="s">&quot;new_annotated_tag&quot;</span><span class="p">,</span> <span class="c1">// tag name</span>
+    <span class="n">obj</span><span class="p">,</span>                 <span class="c1">// tag target</span>
+    <span class="n">sig</span><span class="p">,</span>                 <span class="c1">// signature</span>
+    <span class="s">&quot;A message&quot;</span><span class="p">,</span>         <span class="c1">// message</span>
+    <span class="mi">1</span><span class="p">);</span>                  <span class="c1">// force if name collides</span>
+</code></pre></div></figure>
+
+
+<p>It turns out an annotated tag is just a lightweight tag (regular ref) that points to a tag annotation object, which in turn points to something else.
+So you can create an annotation with <code>git_tag_annotation_create</code>, then create the tag ref separately.</p>
+
+<p>Don&#8217;t forget this is C; always free your newly-created heap objects with <code>git_*_free</code> calls.
+In this case:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'><span class="n">git_signature_free</span><span class="p">(</span><span class="n">sig</span><span class="p">);</span>
+<span class="n">git_object_free</span><span class="p">(</span><span class="n">obj</span><span class="p">);</span>
+<span class="n">git_tag_free</span><span class="p">(</span><span class="n">tag</span><span class="p">);</span>
+<span class="n">git_reference_free</span><span class="p">(</span><span class="n">ref</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>The rule of thumb here is if you declared it as a pointer, it probably needs freeing.</p>
+
+<h2>What now?</h2>
+
+<p>I dunno.
+What are you trying to do?
+You could always check out my <a href="/blog/categories/libgit2/">other libgit2 posts</a> for some ideas.
+Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to">everywhere else</a>.</p>
+
+  
+  
+
+
+    </article>
   
   
     <article class="post">
@@ -769,7 +964,7 @@ Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20l
         
         <a href="/2012/10/24/the-best-part-of-waking-up/">The Best Part of Waking Up</a>
         
-        
+        <span style="color: #aaa">(unpublished)</span>
       </h1>
     
     
@@ -859,7 +1054,7 @@ than using them to avoiding real work, and I get more real work done.</p>
         
         <a href="/2011/02/02/native-win32-for-fun-and-profit/">Native Win32 for fun and profit</a>
         
-        
+        <span style="color: #aaa">(unpublished)</span>
       </h1>
     
     
