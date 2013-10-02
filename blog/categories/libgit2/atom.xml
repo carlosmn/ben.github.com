@@ -4,7 +4,7 @@
   <title><![CDATA[Category: libgit2 | Ben Straub]]></title>
   <link href="http://ben.github.com/blog/categories/libgit2/atom.xml" rel="self"/>
   <link href="http://ben.github.com/"/>
-  <updated>2013-09-03T09:23:23-07:00</updated>
+  <updated>2013-10-01T20:41:17-07:00</updated>
   <id>http://ben.github.com/</id>
   <author>
     <name><![CDATA[Ben Straub]]></name>
@@ -12,6 +12,154 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[libgit2: Walking History]]></title>
+    <link href="http://ben.github.com/2013/10/02/revwalk/"/>
+    <updated>2013-10-02T12:21:00-07:00</updated>
+    <id>http://ben.github.com/2013/10/02/revwalk</id>
+    <content type="html"><![CDATA[<p>Making new commits and dealing with the working directory is only half of what git is for.
+Most of the data in a git repository is historical; old commits, old versions of files.
+Let's take a look at how you can use libgit2 to handle that information.</p>
+
+<h2>Commits</h2>
+
+<p>It's pretty easy to just load up a commit and start poking around with the data inside it.
+It seems pretty logical to do this when you want to walk the commit history of the project, right?
+Let's take a look at how that turns out:</p>
+
+<p>```c
+  void visit(git_commit *c)
+  {</p>
+
+<pre><code>ize_t i, num_parents = git_commit_parentcount(c);
+
+/* Print some stuff about this commit */
+char oidstr[10] = {0};
+git_oid_tostr(oidstr, 9, git_commit_id(c));
+printf("%s\n%s\n\n", oidstr,
+       commit_message(c));
+
+for (i=0; i&lt;num_parents; i++) {
+  /* Do the same for the parents */
+  git_commit *p;
+  if (!git_commit_parent(&amp;p, c, i))
+    visit(p);
+  git_commit_free(p);
+}
+</code></pre>
+
+<p>  }</p>
+
+<p>  git_commit <em>commit;
+  /</em> elided: dereference HEAD to a commit */
+  visit(commit);
+```</p>
+
+<p>But what if you want something other than a depth-first traversal?
+Maybe you want to sort the results by commit time?
+That's a pretty tricky bit of code to write.
+What if your repo has a non-trivial amount of history?
+You'll run out of stack frames pretty quickly.</p>
+
+<p>There's an API for that.</p>
+
+<h2>Revwalk</h2>
+
+<p>The revwalk API works similarly to what we just wrote above, with a few exceptions:</p>
+
+<ul>
+<li>It has a configurable sort order for the output.</li>
+<li>It's not built on recursion, so even very large repos can be walked efficiently.</li>
+<li>You get to choose your start and end points.</li>
+<li>It offers some history simplification.</li>
+</ul>
+
+
+<p>Let's walk through this one step at a time.
+First, you have to create a walker object:</p>
+
+<p><code>c
+  git_revwalk *walk;
+  if (git_revwalk_new(&amp;walk, repo) &lt; 0)
+  { /* ERROR */ }
+</code></p>
+
+<p>Pretty straightforward, not much to explain here.
+Next, let's configure the walk:</p>
+
+<p>```c
+  git_revwalk_sorting(walk,</p>
+
+<pre><code>GIT_SORT_TOPOLOGICAL |
+GIT_SORT_TIME)
+</code></pre>
+
+<p>  git_revwalk_push_head(walk);
+  git_revwalk_hide_glob(walk, "tags/*");</p>
+
+<p>  git_object *obj;
+  git_revparse_single(&amp;obj, repo, "HEAD~10");
+  git_revwalk_hide(walk, git_object_id(obj));
+  git_object_free(obj);
+```</p>
+
+<p>We're doing several things here:</p>
+
+<ol>
+<li>We set the sort order to "topological + time".
+This sounds a bit arcane, but it's just what you'd want for a log viewer: parents after children, sorted by commit time.</li>
+<li>We "push" the HEAD commit onto the walk.
+This tells the walk that the HEAD and its ancestors should be visited when we start iterating.
+You can even do more than one "push" (i.e. all of the known refs, for behavior like <code>git log --all</code>).</li>
+<li>We "hide" from the walk all commits that are included in a tag.
+The pattern will match all the refs under "refs/tags", dereference them to commits, and exclude those commits and their ancestors from the walk.</li>
+<li>We also hide all commits that precede the 10th ancestor of HEAD.
+This has much the same effect as passing <code>-10</code> to <code>git log</code>.</li>
+</ol>
+
+
+<p>Obviously, these particular choices won't be right for every application, but there are more than enough options to (hopefully) fit your use case.
+And if not, you can always fall back to writing your own walk using the commit API.</p>
+
+<p>Now we're ready to run the walk, and print out some facts about each commit:</p>
+
+<p>```c
+  git_oid oid;
+  while (git_revwalk_next(&amp;oid, walk) == 0) {</p>
+
+<pre><code>git_commit *c;
+char oidstr[10] = {0};
+
+git_commit_lookup(&amp;c, repo, &amp;oid);
+git_oid_tostr(oidstr, 9, &amp;oid);
+printf("%s\n%s\n\n", oidstr,
+       git_commit_message(c));
+
+git_commit_free(c);
+</code></pre>
+
+<p>  }
+```</p>
+
+<p><em>[Implementing <code>--graph</code> is left as an exercise for the reader.]</em></p>
+
+<p>That wasn't so bad, was it?
+Traveling through time was never so easy.
+All that's left is to clean up the mess we've made.</p>
+
+<p><code>c
+  git_repository_free(repo);
+</code></p>
+
+<p>## What now?
+
+I dunno.
+What are you trying to do?
+You could always check out my [other libgit2 posts](/blog/categories/libgit2/) for some ideas.
+Or look for help [everywhere else](https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[libgit2: Refs, Tags, and Branching]]></title>

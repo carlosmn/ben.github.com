@@ -1,0 +1,323 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>libgit2: Walking History - Ben Straub</title>
+  <meta name="author" content="Ben Straub">
+
+  
+  <meta name="description" content="Tweet libgit2: Walking History Oct 2nd, 2013 Making new commits and dealing with the working directory is only half of what git is for.
+Most of the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ben.github.com/2013/10/02/revwalk/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Ben Straub" type="application/atom+xml">
+  
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-35858797-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body >
+  <header role="banner" id="sidebar">
+    <!-- Logo -->
+<ul id="menu">
+
+  <li class="title">
+    <h1 id="title"><a href="/">Ben Straub</a></h1>
+  </li>
+
+
+  <li class="link">
+    <a href="/about">who?</a>
+  </li>
+  <li class="link">
+    <a href="/talks">talks</a>
+  </li>
+
+  <li class="link">
+    <a href="http://twitter.com/benstraub/">twitter</a>
+  </li>
+
+
+  <li class="link">
+    <a href="http://github.com/ben/">github</a>
+  </li>
+
+  <li class="link rss">
+    <a href="/atom.xml">rss feed</a>
+  </li>
+
+  <li class="link">—</li>
+
+  <li class='link'><a class='category' href='/blog/categories/libgit2/'>libgit2</a></li>
+
+</ul>
+
+
+
+<!-- Octopress Love -->
+<aside id="octopress_linkback">
+  <a href="http://octopress.org/">
+    <span class="unicode_square">
+      <span class="unicode_circle">
+        &nbsp;
+      </span>
+    </span>
+    <span class="octopress">Powered by Octopress</span>
+  </a>
+</aside>
+
+  </header>
+  <section id="main">
+    <article class="post">
+  <div class="sharing-box">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://ben.github.com/2013/10/02/revwalk/" data-via="benstraub" data-counturl="http://ben.github.com/2013/10/02/revwalk/" data-size="large">Tweet</a>
+  
+  
+  
+</div>
+
+  
+  <header>
+    
+    <h1 class="entry-title">
+        libgit2: Walking History
+        
+    </h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-02T12:21:00-07:00" pubdate data-updated="true">Oct 2<span>nd</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+	
+	<p>Making new commits and dealing with the working directory is only half of what git is for.
+Most of the data in a git repository is historical; old commits, old versions of files.
+Let&#8217;s take a look at how you can use libgit2 to handle that information.</p>
+
+<h2>Commits</h2>
+
+<p>It&#8217;s pretty easy to just load up a commit and start poking around with the data inside it.
+It seems pretty logical to do this when you want to walk the commit history of the project, right?
+Let&#8217;s take a look at how that turns out:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'>  <span class="kt">void</span> <span class="nf">visit</span><span class="p">(</span><span class="n">git_commit</span> <span class="o">*</span><span class="n">c</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">ize_t</span> <span class="n">i</span><span class="p">,</span> <span class="n">num_parents</span> <span class="o">=</span> <span class="n">git_commit_parentcount</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+
+    <span class="cm">/* Print some stuff about this commit */</span>
+    <span class="kt">char</span> <span class="n">oidstr</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+    <span class="n">git_oid_tostr</span><span class="p">(</span><span class="n">oidstr</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">git_commit_id</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">oidstr</span><span class="p">,</span>
+           <span class="n">commit_message</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">num_parents</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="cm">/* Do the same for the parents */</span>
+      <span class="n">git_commit</span> <span class="o">*</span><span class="n">p</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">git_commit_parent</span><span class="p">(</span><span class="o">&amp;</span><span class="n">p</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+        <span class="n">visit</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+      <span class="n">git_commit_free</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="n">git_commit</span> <span class="o">*</span><span class="n">commit</span><span class="p">;</span>
+  <span class="cm">/* elided: dereference HEAD to a commit */</span>
+  <span class="n">visit</span><span class="p">(</span><span class="n">commit</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>But what if you want something other than a depth-first traversal?
+Maybe you want to sort the results by commit time?
+That&#8217;s a pretty tricky bit of code to write.
+What if your repo has a non-trivial amount of history?
+You&#8217;ll run out of stack frames pretty quickly.</p>
+
+<p>There&#8217;s an API for that.</p>
+
+<h2>Revwalk</h2>
+
+<p>The revwalk API works similarly to what we just wrote above, with a few exceptions:</p>
+
+<ul>
+<li>It has a configurable sort order for the output.</li>
+<li>It&#8217;s not built on recursion, so even very large repos can be walked efficiently.</li>
+<li>You get to choose your start and end points.</li>
+<li>It offers some history simplification.</li>
+</ul>
+
+
+<p>Let&#8217;s walk through this one step at a time.
+First, you have to create a walker object:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'>  <span class="n">git_revwalk</span> <span class="o">*</span><span class="n">walk</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">git_revwalk_new</span><span class="p">(</span><span class="o">&amp;</span><span class="n">walk</span><span class="p">,</span> <span class="n">repo</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">{</span> <span class="cm">/* ERROR */</span> <span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>Pretty straightforward, not much to explain here.
+Next, let&#8217;s configure the walk:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'>  <span class="n">git_revwalk_sorting</span><span class="p">(</span><span class="n">walk</span><span class="p">,</span>
+    <span class="n">GIT_SORT_TOPOLOGICAL</span> <span class="o">|</span>
+    <span class="n">GIT_SORT_TIME</span><span class="p">)</span>
+  <span class="n">git_revwalk_push_head</span><span class="p">(</span><span class="n">walk</span><span class="p">);</span>
+  <span class="n">git_revwalk_hide_glob</span><span class="p">(</span><span class="n">walk</span><span class="p">,</span> <span class="s">&quot;tags/*&quot;</span><span class="p">);</span>
+
+  <span class="n">git_object</span> <span class="o">*</span><span class="n">obj</span><span class="p">;</span>
+  <span class="n">git_revparse_single</span><span class="p">(</span><span class="o">&amp;</span><span class="n">obj</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="s">&quot;HEAD~10&quot;</span><span class="p">);</span>
+  <span class="n">git_revwalk_hide</span><span class="p">(</span><span class="n">walk</span><span class="p">,</span> <span class="n">git_object_id</span><span class="p">(</span><span class="n">obj</span><span class="p">));</span>
+  <span class="n">git_object_free</span><span class="p">(</span><span class="n">obj</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<p>We&#8217;re doing several things here:</p>
+
+<ol>
+<li>We set the sort order to &#8220;topological + time&#8221;.
+This sounds a bit arcane, but it&#8217;s just what you&#8217;d want for a log viewer: parents after children, sorted by commit time.</li>
+<li>We &#8220;push&#8221; the HEAD commit onto the walk.
+This tells the walk that the HEAD and its ancestors should be visited when we start iterating.
+You can even do more than one &#8220;push&#8221; (i.e. all of the known refs, for behavior like <code>git log --all</code>).</li>
+<li>We &#8220;hide&#8221; from the walk all commits that are included in a tag.
+The pattern will match all the refs under &#8220;refs/tags&#8221;, dereference them to commits, and exclude those commits and their ancestors from the walk.</li>
+<li>We also hide all commits that precede the 10th ancestor of HEAD.
+This has much the same effect as passing <code>-10</code> to <code>git log</code>.</li>
+</ol>
+
+
+<p>Obviously, these particular choices won&#8217;t be right for every application, but there are more than enough options to (hopefully) fit your use case.
+And if not, you can always fall back to writing your own walk using the commit API.</p>
+
+<p>Now we&#8217;re ready to run the walk, and print out some facts about each commit:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'>  <span class="n">git_oid</span> <span class="n">oid</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">git_revwalk_next</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oid</span><span class="p">,</span> <span class="n">walk</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">git_commit</span> <span class="o">*</span><span class="n">c</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">oidstr</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+
+    <span class="n">git_commit_lookup</span><span class="p">(</span><span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">repo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oid</span><span class="p">);</span>
+    <span class="n">git_oid_tostr</span><span class="p">(</span><span class="n">oidstr</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oid</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">oidstr</span><span class="p">,</span>
+           <span class="n">git_commit_message</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+
+    <span class="n">git_commit_free</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+  <span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p><em>[Implementing <code>--graph</code> is left as an exercise for the reader.]</em></p>
+
+<p>That wasn&#8217;t so bad, was it?
+Traveling through time was never so easy.
+All that&#8217;s left is to clean up the mess we&#8217;ve made.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='c'>  <span class="n">git_repository_free</span><span class="p">(</span><span class="n">repo</span><span class="p">);</span>
+</code></pre></div></figure>
+
+
+<h2>What now?</h2>
+
+<p>I dunno.
+What are you trying to do?
+You could always check out my <a href="/blog/categories/libgit2/">other libgit2 posts</a> for some ideas.
+Or look for help <a href="https://www.google.com/search?q=how%20do%20I%20use%20libgit2%20to">everywhere else</a>.</p>
+
+
+
+</article>
+
+  <section class="comments">
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+
+    <nav role="navigation" id="pagination">
+
+</nav>
+  </section>
+  
+
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'benstraubnet';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://ben.github.com/2013/10/02/revwalk/';
+        var disqus_url = 'http://ben.github.com/2013/10/02/revwalk/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+</body>
+</html>
